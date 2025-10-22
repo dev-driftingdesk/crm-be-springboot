@@ -1,6 +1,7 @@
 package com.ceedpods.crmbuild.enums;
 
 public enum UserRole {
+    USER("User"),
     ADMIN("Admin"),
     MANAGER("Manager"),
     SALES_REP("Sales Representative");
