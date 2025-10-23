@@ -1,34 +1,39 @@
 server:
-  port: 8080
+  port: 8084
   servlet:
     context-path: /api/v1
 
 spring:
   application:
     name: crmbuild-service
-  
-  datasource:
-    url: jdbc:sqlserver://localhost:1433;databaseName=crmbuild;encrypt=true;trustServerCertificate=true
-    username: ${DB_USERNAME:sa}
-    password: ${DB_PASSWORD:password}
-    driver-class-name: com.microsoft.sqlserver.jdbc.SQLServerDriver
-  
-  jpa:
-    hibernate:
-      ddl-auto: validate
-    show-sql: false
-    properties:
-      hibernate:
-        dialect: org.hibernate.dialect.SQLServerDialect
-        format_sql: true
-  
-  liquibase:
-    change-log: classpath:db/changelog/db.changelog-master.xml
-  
+
+  # Enable ANSI colors in console output
+  output:
+    ansi:
+      enabled: ALWAYS
+
+  data:
+    mongodb:
+      uri: ${MONGODB_URI:mongodb://localhost:27017/crmbuild}
+      auto-index-creation: true
+
   security:
-    jwt:
-      secret: ${JWT_SECRET:mySecretKey}
-      expiration: 86400000 # 24 hours
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: http://localhost:8080/realms/lahiru
+          jwk-set-uri: http://localhost:8080/realms/lahiru/protocol/openid-connect/certs
+      client:
+        registration:
+          keycloak:
+            client-id: lahiru
+            client-secret: ${KEYCLOAK_CLIENT_SECRET:xEIeFp4ishQlspp2YLtQGn7InVI5t2Qi}
+            authorization-grant-type: authorization_code
+            scope: openid, profile, email
+        provider:
+          keycloak:
+            issuer-uri: http://localhost:8080/realms/lahiru
+            user-name-attribute: preferred_username
   
   mail:
     host: ${MAIL_HOST:smtp.gmail.com}
@@ -67,13 +72,10 @@ deepgram:
 
 logging:
   level:
-    com.ceedpods.crmbuild: DEBUG
-    org.springframework.security: DEBUG
-  pattern:
-    console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
-    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
-  file:
-    name: logs/crmbuild-service.log
+    com.ceedpods.crmbuild: INFO
+    org.springframework.security: INFO
+    org.springframework.web: INFO
+    org.mongodb: WARN
 
 management:
   endpoints:
