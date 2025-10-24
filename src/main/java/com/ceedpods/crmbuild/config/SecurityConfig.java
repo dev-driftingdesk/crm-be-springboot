@@ -4,22 +4,25 @@ import com.ceedpods.crmbuild.constants.AppConstants;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
-import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
-import java.util.Arrays;
-import java.util.List;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Configuration
 @EnableWebSecurity
+@EnableMethodSecurity
 public class SecurityConfig {
 
     @Bean
@@ -46,12 +49,37 @@ public class SecurityConfig {
 
     @Bean
     public JwtAuthenticationConverter jwtAuthenticationConverter() {
-        JwtGrantedAuthoritiesConverter grantedAuthoritiesConverter = new JwtGrantedAuthoritiesConverter();
-        grantedAuthoritiesConverter.setAuthoritiesClaimName(AppConstants.Keycloak.CLAIM_REALM_ACCESS_ROLES);
-        grantedAuthoritiesConverter.setAuthorityPrefix(AppConstants.Security.AUTHORITY_PREFIX);
-
         JwtAuthenticationConverter jwtAuthenticationConverter = new JwtAuthenticationConverter();
-        jwtAuthenticationConverter.setJwtGrantedAuthoritiesConverter(grantedAuthoritiesConverter);
+        jwtAuthenticationConverter.setJwtGrantedAuthoritiesConverter(jwt -> {
+            Set<String> roles = new HashSet<>();
+
+            // 1. Extract roles from realm_access.roles (Realm-level roles)
+            Map<String, Object> realmAccess = jwt.getClaim("realm_access");
+            if (realmAccess != null && realmAccess.get("roles") != null) {
+                Collection<String> realmRoles = (Collection<String>) realmAccess.get("roles");
+                roles.addAll(realmRoles);
+            }
+
+            // 2. Extract roles from resource_access (Client-level roles)
+            Map<String, Object> resourceAccess = jwt.getClaim("resource_access");
+            if (resourceAccess != null) {
+                for (Map.Entry<String, Object> entry : resourceAccess.entrySet()) {
+                    if (entry.getValue() instanceof Map) {
+                        Map<String, Object> clientAccess = (Map<String, Object>) entry.getValue();
+                        if (clientAccess.get("roles") != null) {
+                            Collection<String> clientRoles = (Collection<String>) clientAccess.get("roles");
+                            roles.addAll(clientRoles);
+                        }
+                    }
+                }
+            }
+
+            // Convert roles to GrantedAuthority with ROLE_ prefix
+            return roles.stream()
+                .map(role -> (GrantedAuthority) new SimpleGrantedAuthority("ROLE_" + role))
+                .collect(Collectors.toList());
+        });
+
         return jwtAuthenticationConverter;
     }
 

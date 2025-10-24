@@ -12,17 +12,29 @@ public final class AppConstants {
             throw new IllegalStateException("Constants class");
         }
 
-        // Admin credentials
-        public static final String ADMIN_CLIENT_ID = "admin-cli";
-        public static final String ADMIN_USERNAME = "admin";
-        public static final String ADMIN_PASSWORD = "admin";
+        // Server configuration
+        public static final String SERVER_URL = "http://ceedpodsauth.gxc0etccbzdmhxgv.eastus.azurecontainer.io:8080";
+
+        // Realm names
+        public static final String REALM_NAME = "crmAdmin";
+        public static final String REALM_DISPLAY_NAME = "CRM Admin Realm";
 
         // Realm paths
-        public static final String REALM_LAHIRU = "/realms/lahiru";
-        public static final String REALM_MASTER = "/realms/master";
+        public static final String REALM_PATH = "/realms/crmAdmin";
+        public static final String REALM_MASTER_PATH = "/realms/master";
+
+        // Client configuration
+        public static final String CLIENT_ID = "crm-client";
+        public static final String CLIENT_SECRET = "crm-client-secret-2024";
+
+        // Master realm admin credentials (for realm creation)
+        public static final String MASTER_ADMIN_CLIENT_ID = "admin-cli";
+        public static final String MASTER_ADMIN_USERNAME = "admin";
+        public static final String MASTER_ADMIN_PASSWORD = "admin";
 
         // API endpoints
-        public static final String ADMIN_USERS_PATH = "/admin/realms/lahiru/users";
+        public static final String ADMIN_REALMS_PATH = "/admin/realms/";
+        public static final String ADMIN_USERS_PATH = "/admin/realms/crmAdmin/users";
         public static final String TOKEN_ENDPOINT = "/protocol/openid-connect/token";
         public static final String LOGOUT_ENDPOINT = "/protocol/openid-connect/logout";
 
@@ -36,9 +48,26 @@ public final class AppConstants {
         // Credential types
         public static final String CREDENTIAL_TYPE_PASSWORD = "password";
 
-        // Claims
-        public static final String CLAIM_PREFERRED_USERNAME = "preferred_username";
-        public static final String CLAIM_REALM_ACCESS_ROLES = "realm_access.roles";
+        // Role names
+        public static final String ROLE_ADMIN = "ADMIN";
+        public static final String ROLE_USER = "USER";
+
+        // Role descriptions
+        public static final String ROLE_ADMIN_DESC = "Administrator role with full access";
+        public static final String ROLE_USER_DESC = "Regular user role with limited access";
+    }
+
+    // ==================== Application User Constants ====================
+    public static final class DefaultUsers {
+        private DefaultUsers() {
+            throw new IllegalStateException("Constants class");
+        }
+
+        // Default admin user credentials
+        public static final String ADMIN_EMAIL = "admin@example.com";
+        public static final String ADMIN_PASSWORD = "AdminPass123";
+        public static final String ADMIN_FIRST_NAME = "Admin";
+        public static final String ADMIN_LAST_NAME = "User";
     }
 
     // ==================== Security Constants ====================
@@ -49,17 +78,14 @@ public final class AppConstants {
 
         // Public endpoints
         public static final String[] PUBLIC_POST_ENDPOINTS = {
-            "/auth/register",
             "/auth/login",
-            "/auth/refresh"
+            "/auth/refresh",
+            "/auth/logout"
         };
 
         public static final String[] PUBLIC_GET_ENDPOINTS = {
             "/actuator/**"
         };
-
-        // Authority settings
-        public static final String AUTHORITY_PREFIX = "ROLE_";
 
         // CORS settings
         public static final String[] ALLOWED_ORIGINS = {
@@ -82,23 +108,6 @@ public final class AppConstants {
 
         // Collection names
         public static final String COLLECTION_USERS = "users";
-        public static final String COLLECTION_LEADS = "leads";
-        public static final String COLLECTION_ACTIVITIES = "activities";
-    }
-
-    // ==================== HTTP Constants ====================
-    public static final class Http {
-        private Http() {
-            throw new IllegalStateException("Constants class");
-        }
-
-        // Header names
-        public static final String HEADER_AUTHORIZATION = "Authorization";
-        public static final String HEADER_CONTENT_TYPE = "Content-Type";
-
-        // Content types
-        public static final String CONTENT_TYPE_JSON = "application/json";
-        public static final String CONTENT_TYPE_FORM_URLENCODED = "application/x-www-form-urlencoded";
     }
 
     // ==================== Response Messages ====================
@@ -123,23 +132,9 @@ public final class AppConstants {
         public static final String KEYCLOAK_REGISTRATION_FAILED = "Failed to register user in Keycloak";
         public static final String KEYCLOAK_TOKEN_FAILED = "Failed to get token from Keycloak";
         public static final String KEYCLOAK_ADMIN_TOKEN_FAILED = "Failed to get admin token";
-    }
-
-    // ==================== API Constants ====================
-    public static final class Api {
-        private Api() {
-            throw new IllegalStateException("Constants class");
-        }
-
-        // Base paths
-        public static final String BASE_PATH = "/api/v1";
-        public static final String AUTH_PATH = "/auth";
-
-        // Endpoints
-        public static final String REGISTER_ENDPOINT = "/register";
-        public static final String LOGIN_ENDPOINT = "/login";
-        public static final String REFRESH_ENDPOINT = "/refresh";
-        public static final String LOGOUT_ENDPOINT = "/logout";
-        public static final String ME_ENDPOINT = "/me";
+        public static final String PASSWORD_MISMATCH = "Password and confirm password do not match";
+        public static final String ADMIN_ALREADY_EXISTS = "An admin user already exists in the system";
+        public static final String UNAUTHORIZED_REGISTRATION = "Only admin users can register new users";
+        public static final String USER_CREATED_SUCCESS = "User created successfully";
     }
 }

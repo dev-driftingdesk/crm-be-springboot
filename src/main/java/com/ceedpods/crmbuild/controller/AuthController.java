@@ -11,6 +11,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
@@ -25,12 +26,28 @@ public class AuthController {
     
     private final AuthService authService;
     
-    @PostMapping("/register")
-    public ResponseEntity<UserResponse> register(@Valid @RequestBody RegisterRequest request) {
-        UserResponse response = authService.register(request);
+    /**
+     * Admin-only endpoint to register new users
+     * Only authenticated admin users can access this endpoint
+     *
+     * @param request Registration request with user details
+     * @return UserResponse with created user details
+     */
+    @PostMapping("/admin/register-user")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Map<String, Object>> registerUser(
+            @Valid @RequestBody RegisterRequest request,
+            @AuthenticationPrincipal Jwt jwt
+    ) {
+            UserResponse userResponse = authService.registerUser(request);
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("message", AppConstants.Messages.USER_CREATED_SUCCESS);
+        response.put("user", userResponse);
+
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
-    
+
     @PostMapping("/login")
     public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest request) {
         AuthResponse response = authService.login(request);
@@ -61,8 +78,8 @@ public class AuthController {
 
     @GetMapping("/me")
     public ResponseEntity<UserResponse> getCurrentUser(@AuthenticationPrincipal Jwt jwt) {
-        String username = jwt.getClaimAsString(AppConstants.Keycloak.CLAIM_PREFERRED_USERNAME);
-        UserResponse response = authService.getCurrentUser(username);
+        String email = jwt.getClaimAsString("email");
+        UserResponse response = authService.getCurrentUser(email);
         return ResponseEntity.ok(response);
     }
 }
