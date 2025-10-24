@@ -19,6 +19,5 @@ public class AuthResponse {
     private String tokenType = AppConstants.Keycloak.TOKEN_TYPE_BEARER;
 
     private long expiresIn;
-    private String username;
     private String email;
 }

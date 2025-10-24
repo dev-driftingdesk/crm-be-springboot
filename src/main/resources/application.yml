@@ -21,20 +21,9 @@ spring:
     oauth2:
       resourceserver:
         jwt:
-          issuer-uri: http://localhost:8080/realms/lahiru
-          jwk-set-uri: http://localhost:8080/realms/lahiru/protocol/openid-connect/certs
-      client:
-        registration:
-          keycloak:
-            client-id: lahiru
-            client-secret: ${KEYCLOAK_CLIENT_SECRET:xEIeFp4ishQlspp2YLtQGn7InVI5t2Qi}
-            authorization-grant-type: authorization_code
-            scope: openid, profile, email
-        provider:
-          keycloak:
-            issuer-uri: http://localhost:8080/realms/lahiru
-            user-name-attribute: preferred_username
-  
+          issuer-uri: http://ceedpodsauth.gxc0etccbzdmhxgv.eastus.azurecontainer.io:8080/realms/crmAdmin
+          jwk-set-uri: http://ceedpodsauth.gxc0etccbzdmhxgv.eastus.azurecontainer.io:8080/realms/crmAdmin/protocol/openid-connect/certs
+
   mail:
     host: ${MAIL_HOST:smtp.gmail.com}
     port: ${MAIL_PORT:587}
@@ -69,6 +58,13 @@ google:
 # Deepgram Configuration
 deepgram:
   api-key: ${DEEPGRAM_API_KEY:}
+
+# Keycloak Client Configuration
+keycloak:
+  realm: crmAdmin
+  auth-server-url: http://ceedpodsauth.gxc0etccbzdmhxgv.eastus.azurecontainer.io:8080
+  client-id: crm-client
+  client-secret: ${KEYCLOAK_CLIENT_SECRET:crm-client-secret-2024}
 
 logging:
   level:
