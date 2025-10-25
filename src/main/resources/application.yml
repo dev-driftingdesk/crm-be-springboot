@@ -14,27 +14,44 @@ spring:
 
   data:
     mongodb:
-      uri: ${MONGODB_URI:mongodb://localhost:27017/crmbuild}
+      uri: ${MONGODB_URI:mongodb+srv://amithrathnayaka34_db_user:ceedpods1997@ceedpods.dszv2xr.mongodb.net/ceedpods?retryWrites=true&w=majority&appName=ceedpods}
       auto-index-creation: true
 
+  # OAuth2 configuration (conditionally enabled based on Keycloak availability)
   security:
     oauth2:
       resourceserver:
         jwt:
-          issuer-uri: http://ceedpodsauth.gxc0etccbzdmhxgv.eastus.azurecontainer.io:8080/realms/crmAdmin
-          jwk-set-uri: http://ceedpodsauth.gxc0etccbzdmhxgv.eastus.azurecontainer.io:8080/realms/crmAdmin/protocol/openid-connect/certs
+          issuer-uri: ${KEYCLOAK_ISSUER_URI:${keycloak.server-url}/realms/${keycloak.realm-name}}
+          jwk-set-uri: ${KEYCLOAK_JWK_SET_URI:${keycloak.server-url}/realms/${keycloak.realm-name}/protocol/openid_connect/certs}
+  
+  
 
-  mail:
-    host: ${MAIL_HOST:smtp.gmail.com}
-    port: ${MAIL_PORT:587}
-    username: ${MAIL_USERNAME:}
-    password: ${MAIL_PASSWORD:}
-    properties:
-      mail:
-        smtp:
-          auth: true
-          starttls:
-            enable: true
+# Keycloak Configuration
+keycloak:
+  # Server Configuration
+  server-url: ${KEYCLOAK_SERVER_URL:http://localhost:9080}
+  realm-name: ${KEYCLOAK_REALM_NAME:crmAdmin}
+  
+  # Client Configuration
+  client-id: ${KEYCLOAK_CLIENT_ID:crm-client}
+  client-secret: ${KEYCLOAK_CLIENT_SECRET:crm-client-secret-2024}
+  
+  # Admin Configuration (for realm management)
+  admin:
+    username: ${KEYCLOAK_ADMIN_USERNAME:admin}
+    password: ${KEYCLOAK_ADMIN_PASSWORD:admin}
+    client-id: ${KEYCLOAK_ADMIN_CLIENT_ID:admin-cli}
+  
+  # Connection Settings
+  connection:
+    timeout: ${KEYCLOAK_CONNECTION_TIMEOUT:5000}
+    enabled: ${KEYCLOAK_ENABLED:true}
+    
+  # Fallback Configuration
+  fallback:
+    enabled: ${KEYCLOAK_FALLBACK_ENABLED:true}
+    mode: ${KEYCLOAK_FALLBACK_MODE:development} # development, testing, disabled
 
 # Twilio Configuration
 twilio:
@@ -59,19 +76,14 @@ google:
 deepgram:
   api-key: ${DEEPGRAM_API_KEY:}
 
-# Keycloak Client Configuration
-keycloak:
-  realm: crmAdmin
-  auth-server-url: http://ceedpodsauth.gxc0etccbzdmhxgv.eastus.azurecontainer.io:8080
-  client-id: crm-client
-  client-secret: ${KEYCLOAK_CLIENT_SECRET:crm-client-secret-2024}
-
 logging:
   level:
-    com.ceedpods.crmbuild: INFO
-    org.springframework.security: INFO
-    org.springframework.web: INFO
+    com.ceedpods.crmbuild: DEBUG
+    org.springframework.security: DEBUG
+    org.springframework.web: DEBUG
+    org.springframework.web.client: DEBUG
     org.mongodb: WARN
+    org.springframework.data.mongodb: WARN
 
 management:
   endpoints:
