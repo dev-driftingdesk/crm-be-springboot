@@ -17,7 +17,7 @@ spring:
       uri: ${MONGODB_URI:mongodb+srv://amithrathnayaka34_db_user:ceedpods1997@ceedpods.dszv2xr.mongodb.net/ceedpods?retryWrites=true&w=majority&appName=ceedpods}
       auto-index-creation: true
 
-  # OAuth2 configuration (conditionally enabled based on Keycloak availability)
+  # OAuth2 configuration - Keycloak required
   security:
     oauth2:
       resourceserver:
@@ -25,17 +25,17 @@ spring:
           issuer-uri: ${KEYCLOAK_ISSUER_URI:${keycloak.server-url}/realms/${keycloak.realm-name}}
           jwk-set-uri: ${KEYCLOAK_JWK_SET_URI:${keycloak.server-url}/realms/${keycloak.realm-name}/protocol/openid_connect/certs}
   
-  
 
-# Keycloak Configuration
+
+# Keycloak Configuration - Required for application startup
 keycloak:
   # Server Configuration
-  server-url: ${KEYCLOAK_SERVER_URL:http://localhost:9080}
-  realm-name: ${KEYCLOAK_REALM_NAME:crmAdmin}
+  server-url: ${KEYCLOAK_SERVER_URL:http://authceedpods.cec3hedzgkdchfaf.eastus.azurecontainer.io:8080}
+  realm-name: ${KEYCLOAK_REALM_NAME:ceedpods}
   
   # Client Configuration
-  client-id: ${KEYCLOAK_CLIENT_ID:crm-client}
-  client-secret: ${KEYCLOAK_CLIENT_SECRET:crm-client-secret-2024}
+  client-id: ${KEYCLOAK_CLIENT_ID:ceedpods}
+  client-secret: ${KEYCLOAK_CLIENT_SECRET:TVdDpeJHPl2uegRlIhlXL7TCuVdYoirR}
   
   # Admin Configuration (for realm management)
   admin:
@@ -46,12 +46,6 @@ keycloak:
   # Connection Settings
   connection:
     timeout: ${KEYCLOAK_CONNECTION_TIMEOUT:5000}
-    enabled: ${KEYCLOAK_ENABLED:true}
-    
-  # Fallback Configuration
-  fallback:
-    enabled: ${KEYCLOAK_FALLBACK_ENABLED:true}
-    mode: ${KEYCLOAK_FALLBACK_MODE:development} # development, testing, disabled
 
 # Twilio Configuration
 twilio:

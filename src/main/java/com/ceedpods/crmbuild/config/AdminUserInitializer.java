@@ -5,10 +5,12 @@ import com.ceedpods.crmbuild.dto.RegisterRequest;
 import com.ceedpods.crmbuild.entity.User;
 import com.ceedpods.crmbuild.enums.UserRole;
 import com.ceedpods.crmbuild.repository.UserRepository;
+import com.ceedpods.crmbuild.service.KeycloakHealthService;
 import com.ceedpods.crmbuild.service.KeycloakService;
 import com.ceedpods.crmbuild.service.KeycloakAdminService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
@@ -28,6 +30,13 @@ public class AdminUserInitializer {
     private final UserRepository userRepository;
     private final KeycloakService keycloakService;
     private final KeycloakAdminService keycloakAdminService;
+    @Value("${keycloak.server-url}")
+    private String keycloakServerUrl;
+    
+    @Value("${keycloak.realm-name}")
+    private String keycloakRealmName;
+    
+    private final KeycloakHealthService keycloakHealthService;
 
     @EventListener(ApplicationReadyEvent.class)
     public void initializeAdmin() {
@@ -35,6 +44,12 @@ public class AdminUserInitializer {
             log.info("=============================================================");
             log.info("CHECKING FOR ADMIN USER...");
             log.info("=============================================================");
+            
+            // Verify Keycloak is available - application requires Keycloak
+            if (!keycloakHealthService.isKeycloakAvailable()) {
+                log.error("Keycloak is not available. Application cannot start without Keycloak connectivity.");
+                throw new RuntimeException("Keycloak connectivity required for application startup");
+            }
 
             // Check if admin already exists
             long adminCount = userRepository.countByRole(UserRole.ADMIN);
@@ -111,12 +126,15 @@ public class AdminUserInitializer {
             log.error("Error: {}", e.getMessage());
             log.error("Full error:", e);
             log.error("=============================================================");
+            log.error("CRITICAL: Application cannot start without Keycloak admin user!");
             log.error("Please check:");
-            log.error("1. Keycloak is running at {}", AppConstants.Keycloak.SERVER_URL);
-            log.error("2. The '{}' realm was created successfully", AppConstants.Keycloak.REALM_NAME);
+            log.error("1. Keycloak is running at {}", keycloakServerUrl);
+            log.error("2. The '{}' realm was created successfully", keycloakRealmName);
             log.error("3. MongoDB is running");
             log.error("4. Enable 'Login with email' in Keycloak realm settings if needed");
+            log.error("5. Keycloak admin credentials are correct");
             log.error("=============================================================");
+            throw new RuntimeException("Failed to create admin user. Application requires Keycloak connectivity.", e);
         }
     }
 }

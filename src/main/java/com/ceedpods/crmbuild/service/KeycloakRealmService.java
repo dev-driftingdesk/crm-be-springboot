@@ -3,6 +3,7 @@ package com.ceedpods.crmbuild.service;
 import com.ceedpods.crmbuild.constants.AppConstants;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.util.LinkedMultiValueMap;
@@ -22,14 +23,31 @@ import java.util.Map;
 public class KeycloakRealmService {
 
     private final RestTemplate restTemplate = new RestTemplate();
+    private final KeycloakHealthService keycloakHealthService;
+    
+    @Value("${keycloak.server-url}")
+    private String keycloakServerUrl;
+    
+    @Value("${keycloak.admin.username}")
+    private String keycloakAdminUsername;
+    
+    @Value("${keycloak.admin.password}")
+    private String keycloakAdminPassword;
+    
+    @Value("${keycloak.admin.client-id}")
+    private String keycloakAdminClientId;
 
     /**
      * Get admin token from master realm for administrative operations
      */
     private String getMasterAdminToken() {
+        if (!keycloakHealthService.isKeycloakAvailable()) {
+            throw new RuntimeException("Keycloak server is not available");
+        }
+
         try {
-            String tokenUrl = AppConstants.Keycloak.SERVER_URL +
-                AppConstants.Keycloak.REALM_MASTER_PATH +
+            String tokenUrl = keycloakServerUrl +
+                AppConstants.Keycloak.getMasterRealmPath() +
                 AppConstants.Keycloak.TOKEN_ENDPOINT;
 
             HttpHeaders headers = new HttpHeaders();
@@ -37,9 +55,9 @@ public class KeycloakRealmService {
 
             MultiValueMap<String, String> body = new LinkedMultiValueMap<>();
             body.add("grant_type", AppConstants.Keycloak.GRANT_TYPE_PASSWORD);
-            body.add("client_id", AppConstants.Keycloak.MASTER_ADMIN_CLIENT_ID);
-            body.add("username", AppConstants.Keycloak.MASTER_ADMIN_USERNAME);
-            body.add("password", AppConstants.Keycloak.MASTER_ADMIN_PASSWORD);
+            body.add("client_id", keycloakAdminClientId);
+            body.add("username", keycloakAdminUsername);
+            body.add("password", keycloakAdminPassword);
 
             HttpEntity<MultiValueMap<String, String>> entity = new HttpEntity<>(body, headers);
 
@@ -55,7 +73,7 @@ public class KeycloakRealmService {
 
         } catch (Exception e) {
             log.error("Error getting master admin token: {}", e.getMessage());
-            throw new RuntimeException("Failed to get admin token from master realm");
+            throw new RuntimeException("Failed to get admin token from master realm: " + e.getMessage());
         }
     }
 
@@ -63,9 +81,11 @@ public class KeycloakRealmService {
      * Check if a realm exists
      */
     public boolean realmExists(String realmName) {
+
+
         try {
             String adminToken = getMasterAdminToken();
-            String realmUrl = AppConstants.Keycloak.SERVER_URL + "/admin/realms/" + realmName;
+            String realmUrl = keycloakServerUrl + "/admin/realms/" + realmName;
 
             HttpHeaders headers = new HttpHeaders();
             headers.setBearerAuth(adminToken);
@@ -87,9 +107,11 @@ public class KeycloakRealmService {
      * Create a new realm
      */
     public void createRealm(String realmName, String displayName) {
+
+
         try {
             String adminToken = getMasterAdminToken();
-            String realmsUrl = AppConstants.Keycloak.SERVER_URL + "/admin/realms";
+            String realmsUrl = keycloakServerUrl + "/admin/realms";
 
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
@@ -120,7 +142,7 @@ public class KeycloakRealmService {
             log.info("Realm '{}' already exists", realmName);
         } catch (Exception e) {
             log.error("Error creating realm '{}': {}", realmName, e.getMessage(), e);
-            throw new RuntimeException("Failed to create realm: " + realmName);
+            throw new RuntimeException("Failed to create realm: " + realmName + ". Error: " + e.getMessage());
         }
     }
 
@@ -128,9 +150,11 @@ public class KeycloakRealmService {
      * Create a client in a realm
      */
     public void createClient(String realmName, String clientId, String clientSecret) {
+
+
         try {
             String adminToken = getMasterAdminToken();
-            String clientsUrl = AppConstants.Keycloak.SERVER_URL + "/admin/realms/" + realmName + "/clients";
+            String clientsUrl = keycloakServerUrl + "/admin/realms/" + realmName + "/clients";
 
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
@@ -160,7 +184,7 @@ public class KeycloakRealmService {
             log.info("Client '{}' already exists in realm '{}'", clientId, realmName);
         } catch (Exception e) {
             log.error("Error creating client '{}' in realm '{}': {}", clientId, realmName, e.getMessage());
-            throw new RuntimeException("Failed to create client: " + clientId);
+            throw new RuntimeException("Failed to create client: " + clientId + ". Error: " + e.getMessage());
         }
     }
 
@@ -168,9 +192,11 @@ public class KeycloakRealmService {
      * Create a realm role
      */
     public void createRealmRole(String realmName, String roleName, String description) {
+
+
         try {
             String adminToken = getMasterAdminToken();
-            String rolesUrl = AppConstants.Keycloak.SERVER_URL + "/admin/realms/" + realmName + "/roles";
+            String rolesUrl = keycloakServerUrl + "/admin/realms/" + realmName + "/roles";
 
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);

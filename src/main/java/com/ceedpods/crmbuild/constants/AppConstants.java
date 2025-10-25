@@ -12,29 +12,11 @@ public final class AppConstants {
             throw new IllegalStateException("Constants class");
         }
 
-        // Server configuration
-        public static final String SERVER_URL = "http://ceedpodsauth.gxc0etccbzdmhxgv.eastus.azurecontainer.io:8080";
-
-        // Realm names
-        public static final String REALM_NAME = "crmAdmin";
+        // Realm configuration (configurable via properties)
         public static final String REALM_DISPLAY_NAME = "CRM Admin Realm";
 
-        // Realm paths
-        public static final String REALM_PATH = "/realms/crmAdmin";
-        public static final String REALM_MASTER_PATH = "/realms/master";
-
-        // Client configuration
-        public static final String CLIENT_ID = "crm-client";
-        public static final String CLIENT_SECRET = "crm-client-secret-2024";
-
-        // Master realm admin credentials (for realm creation)
-        public static final String MASTER_ADMIN_CLIENT_ID = "admin-cli";
-        public static final String MASTER_ADMIN_USERNAME = "admin";
-        public static final String MASTER_ADMIN_PASSWORD = "admin";
-
-        // API endpoints
+        // API endpoints (relative paths)
         public static final String ADMIN_REALMS_PATH = "/admin/realms/";
-        public static final String ADMIN_USERS_PATH = "/admin/realms/crmAdmin/users";
         public static final String TOKEN_ENDPOINT = "/protocol/openid-connect/token";
         public static final String LOGOUT_ENDPOINT = "/protocol/openid-connect/logout";
 
@@ -55,6 +37,19 @@ public final class AppConstants {
         // Role descriptions
         public static final String ROLE_ADMIN_DESC = "Administrator role with full access";
         public static final String ROLE_USER_DESC = "Regular user role with limited access";
+
+        // Helper methods to build dynamic paths
+        public static String getRealmPath(String realmName) {
+            return "/realms/" + realmName;
+        }
+
+        public static String getMasterRealmPath() {
+            return "/realms/master";
+        }
+
+        public static String getAdminUsersPath(String realmName) {
+            return "/admin/realms/" + realmName + "/users";
+        }
     }
 
     // ==================== Application User Constants ====================

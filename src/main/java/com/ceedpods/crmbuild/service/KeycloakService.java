@@ -4,6 +4,7 @@ import com.ceedpods.crmbuild.constants.AppConstants;
 import com.ceedpods.crmbuild.dto.AuthResponse;
 import com.ceedpods.crmbuild.dto.LoginRequest;
 import com.ceedpods.crmbuild.dto.RegisterRequest;
+import com.ceedpods.crmbuild.service.KeycloakHealthService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -23,15 +24,28 @@ import java.util.Map;
 public class KeycloakService {
     
     private final RestTemplate restTemplate = new RestTemplate();
-
-    @Value("${spring.security.oauth2.resourceserver.jwt.issuer-uri}")
-    private String keycloakIssuerUri;
-
+    private final KeycloakHealthService keycloakHealthService;
+    
+    @Value("${keycloak.server-url}")
+    private String keycloakServerUrl;
+    
+    @Value("${keycloak.realm-name}")
+    private String keycloakRealmName;
+    
     @Value("${keycloak.client-id}")
-    private String clientId;
-
+    private String keycloakClientId;
+    
     @Value("${keycloak.client-secret}")
-    private String clientSecret;
+    private String keycloakClientSecret;
+    
+    @Value("${keycloak.admin.username}")
+    private String keycloakAdminUsername;
+    
+    @Value("${keycloak.admin.password}")
+    private String keycloakAdminPassword;
+    
+    @Value("${keycloak.admin.client-id}")
+    private String keycloakAdminClientId;
     
     /**
      * Register a new user in Keycloak (using email as username)
@@ -40,11 +54,14 @@ public class KeycloakService {
      * @return Keycloak user ID
      */
     public String registerUser(RegisterRequest request) {
+        // Verify Keycloak is available
+        if (!keycloakHealthService.isKeycloakAvailable()) {
+            throw new RuntimeException("Keycloak is required for user registration but is not available");
+        }
+        
         try {
             String adminToken = getAdminToken();
-            // Extract base URL (remove realm path from issuer URI)
-            String baseUrl = keycloakIssuerUri.replace(AppConstants.Keycloak.REALM_PATH, "");
-            String usersUrl = baseUrl + AppConstants.Keycloak.ADMIN_USERS_PATH;
+            String usersUrl = keycloakServerUrl + AppConstants.Keycloak.getAdminUsersPath(keycloakRealmName);
 
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
@@ -95,17 +112,24 @@ public class KeycloakService {
      * Keycloak supports email login directly if configured
      */
     public AuthResponse login(LoginRequest request) {
+        // Verify Keycloak is available
+        if (!keycloakHealthService.isKeycloakAvailable()) {
+            throw new RuntimeException("Keycloak is required for user login but is not available");
+        }
+        
         try {
-            String tokenUrl = keycloakIssuerUri + AppConstants.Keycloak.TOKEN_ENDPOINT;
+            String tokenUrl = keycloakServerUrl + 
+                AppConstants.Keycloak.getRealmPath(keycloakRealmName) + 
+                AppConstants.Keycloak.TOKEN_ENDPOINT;
 
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
 
             MultiValueMap<String, String> body = new LinkedMultiValueMap<>();
             body.add("grant_type", AppConstants.Keycloak.GRANT_TYPE_PASSWORD);
-            body.add("client_id", clientId);
-            if (clientSecret != null && !clientSecret.isEmpty()) {
-                body.add("client_secret", clientSecret);
+            body.add("client_id", keycloakClientId);
+            if (keycloakClientSecret != null && !keycloakClientSecret.isEmpty()) {
+                body.add("client_secret", keycloakClientSecret);
             }
             // Keycloak allows login with email when "login with email" is enabled
             body.add("username", request.getEmail());
@@ -143,17 +167,24 @@ public class KeycloakService {
      * Refresh access token
      */
     public AuthResponse refreshToken(String refreshToken) {
+        // Verify Keycloak is available
+        if (!keycloakHealthService.isKeycloakAvailable()) {
+            throw new RuntimeException("Keycloak is required for token refresh but is not available");
+        }
+        
         try {
-            String tokenUrl = keycloakIssuerUri + AppConstants.Keycloak.TOKEN_ENDPOINT;
+            String tokenUrl = keycloakServerUrl + 
+                AppConstants.Keycloak.getRealmPath(keycloakRealmName) + 
+                AppConstants.Keycloak.TOKEN_ENDPOINT;
 
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
 
             MultiValueMap<String, String> body = new LinkedMultiValueMap<>();
             body.add("grant_type", AppConstants.Keycloak.GRANT_TYPE_REFRESH_TOKEN);
-            body.add("client_id", clientId);
-            if (clientSecret != null && !clientSecret.isEmpty()) {
-                body.add("client_secret", clientSecret);
+            body.add("client_id", keycloakClientId);
+            if (keycloakClientSecret != null && !keycloakClientSecret.isEmpty()) {
+                body.add("client_secret", keycloakClientSecret);
             }
             body.add("refresh_token", refreshToken);
             
@@ -189,18 +220,23 @@ public class KeycloakService {
      * Get admin token for Keycloak admin operations
      */
     private String getAdminToken() {
+        if (!keycloakHealthService.isKeycloakAvailable()) {
+            throw new RuntimeException("Keycloak server is not available");
+        }
+        
         try {
-            String tokenUrl = keycloakIssuerUri.replace(AppConstants.Keycloak.REALM_PATH, "")
-                + AppConstants.Keycloak.REALM_MASTER_PATH + AppConstants.Keycloak.TOKEN_ENDPOINT;
+            String tokenUrl = keycloakServerUrl + 
+                AppConstants.Keycloak.getMasterRealmPath() + 
+                AppConstants.Keycloak.TOKEN_ENDPOINT;
 
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
 
             MultiValueMap<String, String> body = new LinkedMultiValueMap<>();
             body.add("grant_type", AppConstants.Keycloak.GRANT_TYPE_PASSWORD);
-            body.add("client_id", AppConstants.Keycloak.MASTER_ADMIN_CLIENT_ID);
-            body.add("username", AppConstants.Keycloak.MASTER_ADMIN_USERNAME);
-            body.add("password", AppConstants.Keycloak.MASTER_ADMIN_PASSWORD);
+            body.add("client_id", keycloakAdminClientId);
+            body.add("username", keycloakAdminUsername);
+            body.add("password", keycloakAdminPassword);
             
             HttpEntity<MultiValueMap<String, String>> entity = new HttpEntity<>(body, headers);
             
@@ -224,16 +260,23 @@ public class KeycloakService {
      * Logout user
      */
     public void logout(String refreshToken) {
+        // Verify Keycloak is available
+        if (!keycloakHealthService.isKeycloakAvailable()) {
+            throw new RuntimeException("Keycloak is required for user logout but is not available");
+        }
+        
         try {
-            String logoutUrl = keycloakIssuerUri + AppConstants.Keycloak.LOGOUT_ENDPOINT;
+            String logoutUrl = keycloakServerUrl + 
+                AppConstants.Keycloak.getRealmPath(keycloakRealmName) + 
+                AppConstants.Keycloak.LOGOUT_ENDPOINT;
 
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
 
             MultiValueMap<String, String> body = new LinkedMultiValueMap<>();
-            body.add("client_id", clientId);
-            if (clientSecret != null && !clientSecret.isEmpty()) {
-                body.add("client_secret", clientSecret);
+            body.add("client_id", keycloakClientId);
+            if (keycloakClientSecret != null && !keycloakClientSecret.isEmpty()) {
+                body.add("client_secret", keycloakClientSecret);
             }
             body.add("refresh_token", refreshToken);
 

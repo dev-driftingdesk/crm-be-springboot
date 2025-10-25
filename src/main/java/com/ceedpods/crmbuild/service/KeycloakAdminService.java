@@ -1,6 +1,7 @@
 package com.ceedpods.crmbuild.service;
 
 import com.ceedpods.crmbuild.constants.AppConstants;
+import com.ceedpods.crmbuild.service.KeycloakHealthService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -22,18 +23,32 @@ import java.util.Map;
 public class KeycloakAdminService {
 
     private final RestTemplate restTemplate = new RestTemplate();
-
-    @Value("${spring.security.oauth2.resourceserver.jwt.issuer-uri}")
-    private String keycloakIssuerUri;
+    private final KeycloakHealthService keycloakHealthService;
+    
+    @Value("${keycloak.server-url}")
+    private String keycloakServerUrl;
+    
+    @Value("${keycloak.realm-name}")
+    private String keycloakRealmName;
+    
+    @Value("${keycloak.admin.username}")
+    private String keycloakAdminUsername;
+    
+    @Value("${keycloak.admin.password}")
+    private String keycloakAdminPassword;
+    
+    @Value("${keycloak.admin.client-id}")
+    private String keycloakAdminClientId;
 
     /**
      * Create a realm role in Keycloak
      */
     public void createRealmRole(String roleName, String description) {
+
+        
         try {
             String adminToken = getAdminToken();
-            String baseUrl = keycloakIssuerUri.replace(AppConstants.Keycloak.REALM_PATH, "");
-            String rolesUrl = baseUrl + AppConstants.Keycloak.ADMIN_REALMS_PATH + AppConstants.Keycloak.REALM_NAME + "/roles";
+            String rolesUrl = keycloakServerUrl + AppConstants.Keycloak.ADMIN_REALMS_PATH + keycloakRealmName + "/roles";
 
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
@@ -64,12 +79,13 @@ public class KeycloakAdminService {
      * Assign a realm role to a user in Keycloak
      */
     public void assignRealmRoleToUser(String userId, String roleName) {
+
+        
         try {
             String adminToken = getAdminToken();
-            String baseUrl = keycloakIssuerUri.replace(AppConstants.Keycloak.REALM_PATH, "");
 
             // First, get the role details
-            String getRoleUrl = baseUrl + AppConstants.Keycloak.ADMIN_REALMS_PATH + AppConstants.Keycloak.REALM_NAME + "/roles/" + roleName;
+            String getRoleUrl = keycloakServerUrl + AppConstants.Keycloak.ADMIN_REALMS_PATH + keycloakRealmName + "/roles/" + roleName;
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
             headers.setBearerAuth(adminToken);
@@ -89,7 +105,7 @@ public class KeycloakAdminService {
             }
 
             // Now assign the role to the user
-            String assignRoleUrl = baseUrl + AppConstants.Keycloak.ADMIN_REALMS_PATH + AppConstants.Keycloak.REALM_NAME + "/users/" + userId + "/role-mappings/realm";
+            String assignRoleUrl = keycloakServerUrl + AppConstants.Keycloak.ADMIN_REALMS_PATH + keycloakRealmName + "/users/" + userId + "/role-mappings/realm";
 
             List<Map<String, Object>> rolesToAssign = List.of(
                 Map.of(
@@ -116,18 +132,23 @@ public class KeycloakAdminService {
      * Get admin token for Keycloak admin operations
      */
     private String getAdminToken() {
+        if (!keycloakHealthService.isKeycloakAvailable()) {
+            throw new RuntimeException("Keycloak server is not available");
+        }
+        
         try {
-            String tokenUrl = keycloakIssuerUri.replace(AppConstants.Keycloak.REALM_PATH, "")
-                + AppConstants.Keycloak.REALM_MASTER_PATH + AppConstants.Keycloak.TOKEN_ENDPOINT;
+            String tokenUrl = keycloakServerUrl + 
+                AppConstants.Keycloak.getMasterRealmPath() + 
+                AppConstants.Keycloak.TOKEN_ENDPOINT;
 
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
 
             MultiValueMap<String, String> body = new LinkedMultiValueMap<>();
             body.add("grant_type", AppConstants.Keycloak.GRANT_TYPE_PASSWORD);
-            body.add("client_id", AppConstants.Keycloak.MASTER_ADMIN_CLIENT_ID);
-            body.add("username", AppConstants.Keycloak.MASTER_ADMIN_USERNAME);
-            body.add("password", AppConstants.Keycloak.MASTER_ADMIN_PASSWORD);
+            body.add("client_id", keycloakAdminClientId);
+            body.add("username", keycloakAdminUsername);
+            body.add("password", keycloakAdminPassword);
 
             HttpEntity<MultiValueMap<String, String>> entity = new HttpEntity<>(body, headers);
 
@@ -143,7 +164,7 @@ public class KeycloakAdminService {
 
         } catch (Exception e) {
             log.error("Error getting admin token: {}", e.getMessage(), e);
-            throw new RuntimeException(AppConstants.Messages.KEYCLOAK_ADMIN_TOKEN_FAILED);
+            throw new RuntimeException(AppConstants.Messages.KEYCLOAK_ADMIN_TOKEN_FAILED + ": " + e.getMessage());
         }
     }
 }
