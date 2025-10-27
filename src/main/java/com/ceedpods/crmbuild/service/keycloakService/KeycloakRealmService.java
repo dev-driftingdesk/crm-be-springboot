@@ -1,4 +1,4 @@
-package com.ceedpods.crmbuild.service;
+package com.ceedpods.crmbuild.service.keycloakService;
 
 import com.ceedpods.crmbuild.constants.AppConstants;
 import lombok.RequiredArgsConstructor;

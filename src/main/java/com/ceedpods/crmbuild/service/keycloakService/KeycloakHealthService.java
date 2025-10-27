@@ -1,4 +1,4 @@
-package com.ceedpods.crmbuild.service;
+package com.ceedpods.crmbuild.service.keycloakService;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;

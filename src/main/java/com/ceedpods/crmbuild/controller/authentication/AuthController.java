@@ -1,12 +1,12 @@
-package com.ceedpods.crmbuild.controller;
+package com.ceedpods.crmbuild.controller.authentication;
 
 import com.ceedpods.crmbuild.constants.AppConstants;
 import com.ceedpods.crmbuild.dto.AuthResponse;
 import com.ceedpods.crmbuild.dto.LoginRequest;
 import com.ceedpods.crmbuild.dto.RegisterRequest;
-import com.ceedpods.crmbuild.dto.UserResponse;
+import com.ceedpods.crmbuild.dto.UserDTO;
 import com.ceedpods.crmbuild.exception.BadRequestException;
-import com.ceedpods.crmbuild.service.AuthService;
+import com.ceedpods.crmbuild.service.authService.AuthService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -22,30 +22,35 @@ import java.util.Map;
 @RestController
 @RequestMapping("/auth")
 @RequiredArgsConstructor
-public class AuthController {
+public class
+
+AuthController {
     
     private final AuthService authService;
-    
+
     /**
-     * Admin-only endpoint to register new users
-     * Only authenticated admin users can access this endpoint
+     * Super admin endpoint to register new admin users
+     * This should only be used during system setup or by existing super admin
      *
-     * @param request Registration request with user details
-     * @return UserResponse with created user details
+     * @param request Registration request with admin user details
+     * @return UserDTO with created admin user details
      */
-    @PostMapping("/admin/register-user")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<Map<String, Object>> registerUser(
-            @Valid @RequestBody RegisterRequest request,
-            @AuthenticationPrincipal Jwt jwt
-    ) {
-            UserResponse userResponse = authService.registerUser(request);
+    @PostMapping("/admin/create-admin")
+    public ResponseEntity<Map<String, Object>> createAdminUser(
+            @Valid @RequestBody RegisterRequest request) {
+        try {
+            UserDTO adminUser = authService.registerAdminUser(request);
 
-        Map<String, Object> response = new HashMap<>();
-        response.put("message", AppConstants.Messages.USER_CREATED_SUCCESS);
-        response.put("user", userResponse);
+            Map<String, Object> response = new HashMap<>();
+            response.put("message", "Admin user created successfully");
+            response.put("admin", adminUser);
 
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+            return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        } catch (Exception e) {
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("error", "Failed to create admin user: " + e.getMessage());
+            return ResponseEntity.badRequest().body(errorResponse);
+        }
     }
 
     @PostMapping("/login")
@@ -77,9 +82,9 @@ public class AuthController {
     }
 
     @GetMapping("/me")
-    public ResponseEntity<UserResponse> getCurrentUser(@AuthenticationPrincipal Jwt jwt) {
+    public ResponseEntity<UserDTO> getCurrentUser(@AuthenticationPrincipal Jwt jwt) {
         String email = jwt.getClaimAsString("email");
-        UserResponse response = authService.getCurrentUser(email);
+        UserDTO response = authService.getCurrentUser(email);
         return ResponseEntity.ok(response);
     }
 }

@@ -1,0 +1,32 @@
+package com.ceedpods.crmbuild.repository;
+
+import com.ceedpods.crmbuild.entity.PermissionEntity;
+import com.ceedpods.crmbuild.enums.PermissionCategory;
+import org.springframework.data.mongodb.repository.MongoRepository;
+import org.springframework.data.mongodb.repository.Query;
+import org.springframework.stereotype.Repository;
+
+import java.util.List;
+import java.util.Optional;
+
+@Repository
+public interface PermissionRepository extends MongoRepository<PermissionEntity, String> {
+    
+    Optional<PermissionEntity> findByPermissionCode(String permissionCode);
+    
+    List<PermissionEntity> findByCategory(PermissionCategory category);
+    
+    List<PermissionEntity> findByAssignableTrue();
+    
+    List<PermissionEntity> findByAdminOnlyFalse();
+    
+    List<PermissionEntity> findByAssignableTrueAndAdminOnlyFalse();
+    
+    @Query("{ 'active': true, 'deleted': false }")
+    List<PermissionEntity> findAllActive();
+    
+    @Query("{ 'assignable': true, 'adminOnly': false, 'active': true, 'deleted': false }")
+    List<PermissionEntity> findAllAssignablePermissions();
+    
+    boolean existsByPermissionCode(String permissionCode);
+}
