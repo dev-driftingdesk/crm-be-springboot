@@ -2,20 +2,18 @@ package com.ceedpods.crmbuild.config;
 
 import com.ceedpods.crmbuild.constants.AppConstants;
 import com.ceedpods.crmbuild.dto.RegisterRequest;
-import com.ceedpods.crmbuild.entity.User;
+import com.ceedpods.crmbuild.entity.user.User;
 import com.ceedpods.crmbuild.enums.UserRole;
 import com.ceedpods.crmbuild.repository.UserRepository;
-import com.ceedpods.crmbuild.service.KeycloakHealthService;
-import com.ceedpods.crmbuild.service.KeycloakService;
-import com.ceedpods.crmbuild.service.KeycloakAdminService;
+import com.ceedpods.crmbuild.service.keycloakService.KeycloakHealthService;
+import com.ceedpods.crmbuild.service.keycloakService.KeycloakAdminService;
+import com.ceedpods.crmbuild.service.keycloakService.KeycloakService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
-
-import java.time.LocalDateTime;
 
 /**
  * Initializes the default admin user on application startup
@@ -65,10 +63,12 @@ public class AdminUserInitializer {
             log.info("=============================================================");
 
             // Step 1: Create realm roles in Keycloak
-            log.info("Step 1: Creating ADMIN and USER roles in Keycloak...");
+            log.info("Step 1: Creating all user roles in Keycloak...");
             keycloakAdminService.createRealmRole(AppConstants.Keycloak.ROLE_ADMIN, AppConstants.Keycloak.ROLE_ADMIN_DESC);
+            keycloakAdminService.createRealmRole(AppConstants.Keycloak.ROLE_MANAGER, AppConstants.Keycloak.ROLE_MANAGER_DESC);
+            keycloakAdminService.createRealmRole(AppConstants.Keycloak.ROLE_SALES_REP, AppConstants.Keycloak.ROLE_SALES_REP_DESC);
             keycloakAdminService.createRealmRole(AppConstants.Keycloak.ROLE_USER, AppConstants.Keycloak.ROLE_USER_DESC);
-            log.info("✓ Roles created");
+            log.info("✓ All roles created: ADMIN, MANAGER, SALES_REP, USER");
 
             // Step 2: Create admin user in Keycloak
             log.info("Step 2: Creating admin user in Keycloak...");
@@ -99,8 +99,6 @@ public class AdminUserInitializer {
                 .lastName(AppConstants.DefaultUsers.ADMIN_LAST_NAME)
                 .role(UserRole.ADMIN)
                 .enabled(true)
-                .createdAt(LocalDateTime.now())
-                .updatedAt(LocalDateTime.now())
                 .build();
 
             userRepository.save(adminUser);

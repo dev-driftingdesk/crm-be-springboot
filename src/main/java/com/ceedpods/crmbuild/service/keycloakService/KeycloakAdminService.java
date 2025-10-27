@@ -1,7 +1,6 @@
-package com.ceedpods.crmbuild.service;
+package com.ceedpods.crmbuild.service.keycloakService;
 
 import com.ceedpods.crmbuild.constants.AppConstants;
-import com.ceedpods.crmbuild.service.KeycloakHealthService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -11,6 +10,7 @@ import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -39,6 +39,18 @@ public class KeycloakAdminService {
     
     @Value("${keycloak.admin.client-id}")
     private String keycloakAdminClientId;
+
+    /**
+     * Create all required roles in Keycloak if they don't exist
+     */
+    public void ensureAllRolesExist() {
+        log.info("Ensuring all required roles exist in Keycloak...");
+        createRealmRole(AppConstants.Keycloak.ROLE_ADMIN, AppConstants.Keycloak.ROLE_ADMIN_DESC);
+        createRealmRole(AppConstants.Keycloak.ROLE_MANAGER, AppConstants.Keycloak.ROLE_MANAGER_DESC);
+        createRealmRole(AppConstants.Keycloak.ROLE_SALES_REP, AppConstants.Keycloak.ROLE_SALES_REP_DESC);
+        createRealmRole(AppConstants.Keycloak.ROLE_USER, AppConstants.Keycloak.ROLE_USER_DESC);
+        log.info("✓ All roles ensured: ADMIN, MANAGER, SALES_REP, USER");
+    }
 
     /**
      * Create a realm role in Keycloak
@@ -79,6 +91,8 @@ public class KeycloakAdminService {
      * Assign a realm role to a user in Keycloak
      */
     public void assignRealmRoleToUser(String userId, String roleName) {
+
+
 
         
         try {
@@ -165,6 +179,133 @@ public class KeycloakAdminService {
         } catch (Exception e) {
             log.error("Error getting admin token: {}", e.getMessage(), e);
             throw new RuntimeException(AppConstants.Messages.KEYCLOAK_ADMIN_TOKEN_FAILED + ": " + e.getMessage());
+        }
+    }
+    
+    /**
+     * Create a user in Keycloak
+     */
+    public String createUser(String email, String firstName, String lastName, String password) {
+        try {
+            String adminToken = getAdminToken();
+            String usersUrl = keycloakServerUrl + AppConstants.Keycloak.ADMIN_REALMS_PATH + keycloakRealmName + "/users";
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            headers.setBearerAuth(adminToken);
+
+            Map<String, Object> userRepresentation = Map.of(
+                "username", email,
+                "email", email,
+                "firstName", firstName,
+                "lastName", lastName,
+                "enabled", true,
+                "emailVerified", false,
+                "credentials", List.of(
+                    Map.of(
+                        "type", "password",
+                        "value", password,
+                        "temporary", false
+                    )
+                )
+            );
+
+            HttpEntity<Map<String, Object>> entity = new HttpEntity<>(userRepresentation, headers);
+
+            ResponseEntity<String> response = restTemplate.exchange(usersUrl, HttpMethod.POST, entity, String.class);
+            
+            // Extract user ID from Location header
+            String locationHeader = response.getHeaders().getFirst("Location");
+            if (locationHeader != null) {
+                String userId = locationHeader.substring(locationHeader.lastIndexOf('/') + 1);
+                log.info("User '{}' created successfully in Keycloak with ID: {}", email, userId);
+                return userId;
+            } else {
+                throw new RuntimeException("Failed to get user ID from Keycloak response");
+            }
+
+        } catch (Exception e) {
+            log.error("Error creating user '{}': {}", email, e.getMessage());
+            throw new RuntimeException("Failed to create user in Keycloak: " + e.getMessage());
+        }
+    }
+    
+    /**
+     * Update user password in Keycloak
+     */
+    public void updateUserPassword(String userId, String newPassword) {
+        try {
+            String adminToken = getAdminToken();
+            String passwordUrl = keycloakServerUrl + AppConstants.Keycloak.ADMIN_REALMS_PATH + 
+                keycloakRealmName + "/users/" + userId + "/reset-password";
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            headers.setBearerAuth(adminToken);
+
+            Map<String, Object> passwordData = Map.of(
+                "type", "password",
+                "value", newPassword,
+                "temporary", false
+            );
+
+            HttpEntity<Map<String, Object>> entity = new HttpEntity<>(passwordData, headers);
+            restTemplate.exchange(passwordUrl, HttpMethod.PUT, entity, String.class);
+
+            log.info("Password updated successfully for user '{}'", userId);
+
+        } catch (Exception e) {
+            log.error("Error updating password for user '{}': {}", userId, e.getMessage());
+            throw new RuntimeException("Failed to update password in Keycloak: " + e.getMessage());
+        }
+    }
+    
+    /**
+     * Enable or disable user in Keycloak
+     */
+    public void updateUserStatus(String userId, boolean enabled) {
+        try {
+            String adminToken = getAdminToken();
+            String userUrl = keycloakServerUrl + AppConstants.Keycloak.ADMIN_REALMS_PATH + 
+                keycloakRealmName + "/users/" + userId;
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            headers.setBearerAuth(adminToken);
+
+            Map<String, Object> userData = Map.of("enabled", enabled);
+
+            HttpEntity<Map<String, Object>> entity = new HttpEntity<>(userData, headers);
+            restTemplate.exchange(userUrl, HttpMethod.PUT, entity, String.class);
+
+            log.info("User '{}' {} successfully in Keycloak", userId, enabled ? "enabled" : "disabled");
+
+        } catch (Exception e) {
+            log.error("Error updating user status for '{}': {}", userId, e.getMessage());
+            throw new RuntimeException("Failed to update user status in Keycloak: " + e.getMessage());
+        }
+    }
+    
+    /**
+     * Delete user in Keycloak
+     */
+    public void deleteUser(String userId) {
+        try {
+            String adminToken = getAdminToken();
+            String userUrl = keycloakServerUrl + AppConstants.Keycloak.ADMIN_REALMS_PATH + 
+                keycloakRealmName + "/users/" + userId;
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.setBearerAuth(adminToken);
+
+            HttpEntity<Void> entity = new HttpEntity<>(headers);
+            restTemplate.exchange(userUrl, HttpMethod.DELETE, entity, String.class);
+
+            log.info("User '{}' deleted successfully from Keycloak", userId);
+
+        } catch (Exception e) {
+            log.error("Error deleting user '{}': {}", userId, e.getMessage());
+            throw new RuntimeException("Failed to delete user from Keycloak: " + e.getMessage());
         }
     }
 }

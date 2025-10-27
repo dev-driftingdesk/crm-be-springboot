@@ -8,7 +8,12 @@
       "Bash(mvn spring-boot:run:*)",
       "Bash(./gradlew:*)",
       "Bash(mvn compile:*)",
-      "Bash(mvn test-compile:*)"
+      "Bash(mvn test-compile:*)",
+      "Bash(grep:*)",
+      "Bash(find:*)",
+      "Bash(./mvnw:*)",
+      "Bash(mvn clean:*)",
+      "Bash(sed:*)"
     ],
     "deny": [],
     "ask": []

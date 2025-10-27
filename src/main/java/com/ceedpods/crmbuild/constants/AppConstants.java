@@ -32,10 +32,14 @@ public final class AppConstants {
 
         // Role names
         public static final String ROLE_ADMIN = "ADMIN";
+        public static final String ROLE_MANAGER = "MANAGER";
+        public static final String ROLE_SALES_REP = "SALES_REP";
         public static final String ROLE_USER = "USER";
 
         // Role descriptions
         public static final String ROLE_ADMIN_DESC = "Administrator role with full access";
+        public static final String ROLE_MANAGER_DESC = "Manager role with team management access";
+        public static final String ROLE_SALES_REP_DESC = "Sales Representative role with sales access";
         public static final String ROLE_USER_DESC = "Regular user role with limited access";
 
         // Helper methods to build dynamic paths
@@ -75,11 +79,14 @@ public final class AppConstants {
         public static final String[] PUBLIC_POST_ENDPOINTS = {
             "/auth/login",
             "/auth/refresh",
-            "/auth/logout"
+            "/auth/logout",
+            "/auth/admin/create-admin",
+            "/invitations/complete"
         };
 
         public static final String[] PUBLIC_GET_ENDPOINTS = {
-            "/actuator/**"
+            "/actuator/**",
+            "/invitations/validate/*"
         };
 
         // CORS settings
@@ -103,6 +110,11 @@ public final class AppConstants {
 
         // Collection names
         public static final String COLLECTION_USERS = "users";
+        public static final String COLLECTION_PERMISSIONS = "permissions";
+        public static final String COLLECTION_USER_PERMISSIONS = "user_permissions";
+        public static final String COLLECTION_USER_RELATIONSHIPS = "user_relationships";
+        public static final String COLLECTION_USER_INVITATIONS = "user_invitations";
+        public static final String COLLECTION_AUDIT_LOGS = "audit_logs";
     }
 
     // ==================== Response Messages ====================

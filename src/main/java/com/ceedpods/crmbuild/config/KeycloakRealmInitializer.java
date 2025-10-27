@@ -2,8 +2,8 @@ package com.ceedpods.crmbuild.config;
 
 
 import com.ceedpods.crmbuild.constants.AppConstants;
-import com.ceedpods.crmbuild.service.KeycloakHealthService;
-import com.ceedpods.crmbuild.service.KeycloakRealmService;
+import com.ceedpods.crmbuild.service.keycloakService.KeycloakHealthService;
+import com.ceedpods.crmbuild.service.keycloakService.KeycloakRealmService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;

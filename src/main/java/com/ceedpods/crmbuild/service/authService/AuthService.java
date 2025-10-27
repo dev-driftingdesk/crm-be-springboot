@@ -1,24 +1,24 @@
-package com.ceedpods.crmbuild.service;
+package com.ceedpods.crmbuild.service.authService;
 
 import com.ceedpods.crmbuild.constants.AppConstants;
 import com.ceedpods.crmbuild.dto.AuthResponse;
 import com.ceedpods.crmbuild.dto.LoginRequest;
 import com.ceedpods.crmbuild.dto.RegisterRequest;
-import com.ceedpods.crmbuild.dto.UserResponse;
-import com.ceedpods.crmbuild.entity.User;
+import com.ceedpods.crmbuild.dto.UserDTO;
+import com.ceedpods.crmbuild.entity.user.User;
 import com.ceedpods.crmbuild.enums.UserRole;
 import com.ceedpods.crmbuild.exception.AuthenticationException;
 import com.ceedpods.crmbuild.exception.BadRequestException;
 import com.ceedpods.crmbuild.exception.ResourceAlreadyExistsException;
 import com.ceedpods.crmbuild.exception.ResourceNotFoundException;
+import com.ceedpods.crmbuild.mapper.UserMapper;
 import com.ceedpods.crmbuild.repository.UserRepository;
+import com.ceedpods.crmbuild.service.keycloakService.KeycloakAdminService;
+import com.ceedpods.crmbuild.service.keycloakService.KeycloakService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.time.LocalDateTime;
 
 @Service
 @RequiredArgsConstructor
@@ -28,19 +28,19 @@ public class AuthService {
     private final KeycloakService keycloakService;
     private final KeycloakAdminService keycloakAdminService;
     private final UserRepository userRepository;
-    private final ModelMapper modelMapper;
+    private final UserMapper userMapper;
 
     /**
      * Register a new user in both Keycloak and MongoDB (Admin only)
-     * This method is restricted to admin users only
+     * This method creates regular users and is restricted to admin users only
      *
      * @param request Registration request with user details
-     * @return UserResponse with created user details
+     * @return UserDTO with created user details
      * @throws ResourceAlreadyExistsException if username or email already exists (409 Conflict)
      * @throws BadRequestException if passwords don't match (400 Bad Request)
      */
     @Transactional
-    public UserResponse registerUser(RegisterRequest request) {
+    public UserDTO registerUser(RegisterRequest request) {
         // Validate password confirmation
         validatePasswordConfirmation(request.getPassword(), request.getConfirmPassword());
 
@@ -65,21 +65,71 @@ public class AuthService {
                 .lastName(request.getLastName())
                 .role(UserRole.USER)
                 .enabled(true)
-                .createdAt(LocalDateTime.now())
-                .updatedAt(LocalDateTime.now())
                 .build();
 
             user = userRepository.save(user);
 
             log.info("User registered successfully by admin: {}", user.getEmail());
 
-            return modelMapper.map(user, UserResponse.class);
+            return userMapper.toDTO(user);
 
         } catch (ResourceAlreadyExistsException | BadRequestException e) {
             // Re-throw custom exceptions as-is
             throw e;
         } catch (Exception e) {
             log.error("Error during registration for user {}: {}", request.getEmail(), e.getMessage(), e);
+            throw new RuntimeException(AppConstants.Messages.REGISTRATION_FAILED + ": " + e.getMessage());
+        }
+    }
+
+    /**
+     * Register a new admin user in both Keycloak and MongoDB
+     * This method creates admin users and should only be called during system initialization or by super admin
+     *
+     * @param request Registration request with admin user details
+     * @return UserDTO with created admin user details
+     * @throws ResourceAlreadyExistsException if username or email already exists (409 Conflict)
+     * @throws BadRequestException if passwords don't match (400 Bad Request)
+     */
+    @Transactional
+    public UserDTO registerAdminUser(RegisterRequest request) {
+        // Validate password confirmation
+        validatePasswordConfirmation(request.getPassword(), request.getConfirmPassword());
+
+        // Check if email already exists
+        if (userRepository.existsByEmail(request.getEmail())) {
+            log.warn("Admin registration failed: Email already exists - {}", request.getEmail());
+            throw new ResourceAlreadyExistsException(AppConstants.Messages.EMAIL_ALREADY_EXISTS);
+        }
+
+        try {
+            // Register admin user in Keycloak (using email as username)
+            String keycloakId = keycloakService.registerUser(request);
+
+            // Assign ADMIN role to the user in Keycloak
+            keycloakAdminService.assignRealmRoleToUser(keycloakId, AppConstants.Keycloak.ROLE_ADMIN);
+
+            // Save user in MongoDB with ADMIN role
+            User user = User.builder()
+                .keycloakId(keycloakId)
+                .email(request.getEmail())
+                .firstName(request.getFirstName())
+                .lastName(request.getLastName())
+                .role(UserRole.ADMIN)
+                .enabled(true)
+                .build();
+
+            user = userRepository.save(user);
+
+            log.info("Admin user registered successfully: {}", user.getEmail());
+
+            return userMapper.toDTO(user);
+
+        } catch (ResourceAlreadyExistsException | BadRequestException e) {
+            // Re-throw custom exceptions as-is
+            throw e;
+        } catch (Exception e) {
+            log.error("Error during admin registration for user {}: {}", request.getEmail(), e.getMessage(), e);
             throw new RuntimeException(AppConstants.Messages.REGISTRATION_FAILED + ": " + e.getMessage());
         }
     }
@@ -188,16 +238,16 @@ public class AuthService {
      * Get current user profile
      *
      * @param email Email from JWT token
-     * @return UserResponse with user details
+     * @return UserDTO with user details
      * @throws ResourceNotFoundException if user not found (404 Not Found)
      */
-    public UserResponse getCurrentUser(String email) {
+    public UserDTO getCurrentUser(String email) {
         User user = userRepository.findByEmail(email)
             .orElseThrow(() -> {
                 log.warn("User not found: {}", email);
                 return new ResourceNotFoundException(AppConstants.Messages.USER_NOT_FOUND);
             });
 
-        return modelMapper.map(user, UserResponse.class);
+        return userMapper.toDTO(user);
     }
 }

@@ -1,10 +1,9 @@
-package com.ceedpods.crmbuild.service;
+package com.ceedpods.crmbuild.service.keycloakService;
 
 import com.ceedpods.crmbuild.constants.AppConstants;
 import com.ceedpods.crmbuild.dto.AuthResponse;
 import com.ceedpods.crmbuild.dto.LoginRequest;
 import com.ceedpods.crmbuild.dto.RegisterRequest;
-import com.ceedpods.crmbuild.service.KeycloakHealthService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -18,35 +17,38 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Service for Keycloak user authentication operations
+ */
 @Service
 @RequiredArgsConstructor
 @Slf4j
 public class KeycloakService {
-    
+
     private final RestTemplate restTemplate = new RestTemplate();
     private final KeycloakHealthService keycloakHealthService;
-    
+
     @Value("${keycloak.server-url}")
     private String keycloakServerUrl;
-    
+
     @Value("${keycloak.realm-name}")
     private String keycloakRealmName;
-    
+
     @Value("${keycloak.client-id}")
     private String keycloakClientId;
-    
+
     @Value("${keycloak.client-secret}")
     private String keycloakClientSecret;
-    
+
     @Value("${keycloak.admin.username}")
     private String keycloakAdminUsername;
-    
+
     @Value("${keycloak.admin.password}")
     private String keycloakAdminPassword;
-    
+
     @Value("${keycloak.admin.client-id}")
     private String keycloakAdminClientId;
-    
+
     /**
      * Register a new user in Keycloak (using email as username)
      *
@@ -58,7 +60,7 @@ public class KeycloakService {
         if (!keycloakHealthService.isKeycloakAvailable()) {
             throw new RuntimeException("Keycloak is required for user registration but is not available");
         }
-        
+
         try {
             String adminToken = getAdminToken();
             String usersUrl = keycloakServerUrl + AppConstants.Keycloak.getAdminUsersPath(keycloakRealmName);
@@ -106,7 +108,7 @@ public class KeycloakService {
             throw new RuntimeException(AppConstants.Messages.KEYCLOAK_REGISTRATION_FAILED + ": " + e.getMessage());
         }
     }
-    
+
     /**
      * Login user and get tokens using email
      * Keycloak supports email login directly if configured
@@ -116,10 +118,10 @@ public class KeycloakService {
         if (!keycloakHealthService.isKeycloakAvailable()) {
             throw new RuntimeException("Keycloak is required for user login but is not available");
         }
-        
+
         try {
-            String tokenUrl = keycloakServerUrl + 
-                AppConstants.Keycloak.getRealmPath(keycloakRealmName) + 
+            String tokenUrl = keycloakServerUrl +
+                AppConstants.Keycloak.getRealmPath(keycloakRealmName) +
                 AppConstants.Keycloak.TOKEN_ENDPOINT;
 
             HttpHeaders headers = new HttpHeaders();
@@ -128,6 +130,7 @@ public class KeycloakService {
             MultiValueMap<String, String> body = new LinkedMultiValueMap<>();
             body.add("grant_type", AppConstants.Keycloak.GRANT_TYPE_PASSWORD);
             body.add("client_id", keycloakClientId);
+            
             if (keycloakClientSecret != null && !keycloakClientSecret.isEmpty()) {
                 body.add("client_secret", keycloakClientSecret);
             }
@@ -145,36 +148,30 @@ public class KeycloakService {
             );
 
             Map<String, Object> responseBody = response.getBody();
-
-            if (responseBody == null) {
-                throw new RuntimeException(AppConstants.Messages.KEYCLOAK_TOKEN_FAILED);
+            if (responseBody != null) {
+                return AuthResponse.builder()
+                    .accessToken((String) responseBody.get("access_token"))
+                    .refreshToken((String) responseBody.get("refresh_token"))
+                    .expiresIn((Integer) responseBody.get("expires_in"))
+                    .tokenType((String) responseBody.get("token_type"))
+                    .build();
             }
 
-            return AuthResponse.builder()
-                .accessToken((String) responseBody.get("access_token"))
-                .refreshToken((String) responseBody.get("refresh_token"))
-                .tokenType(AppConstants.Keycloak.TOKEN_TYPE_BEARER)
-                .expiresIn(((Number) responseBody.get("expires_in")).longValue())
-                .build();
+            throw new RuntimeException("Invalid response from Keycloak");
 
         } catch (Exception e) {
             log.error("Error during login with email {}: {}", request.getEmail(), e.getMessage(), e);
             throw new RuntimeException(AppConstants.Messages.LOGIN_FAILED + ": " + e.getMessage());
         }
     }
-    
+
     /**
      * Refresh access token
      */
     public AuthResponse refreshToken(String refreshToken) {
-        // Verify Keycloak is available
-        if (!keycloakHealthService.isKeycloakAvailable()) {
-            throw new RuntimeException("Keycloak is required for token refresh but is not available");
-        }
-        
         try {
-            String tokenUrl = keycloakServerUrl + 
-                AppConstants.Keycloak.getRealmPath(keycloakRealmName) + 
+            String tokenUrl = keycloakServerUrl +
+                AppConstants.Keycloak.getRealmPath(keycloakRealmName) +
                 AppConstants.Keycloak.TOKEN_ENDPOINT;
 
             HttpHeaders headers = new HttpHeaders();
@@ -183,39 +180,76 @@ public class KeycloakService {
             MultiValueMap<String, String> body = new LinkedMultiValueMap<>();
             body.add("grant_type", AppConstants.Keycloak.GRANT_TYPE_REFRESH_TOKEN);
             body.add("client_id", keycloakClientId);
+            
             if (keycloakClientSecret != null && !keycloakClientSecret.isEmpty()) {
                 body.add("client_secret", keycloakClientSecret);
             }
             body.add("refresh_token", refreshToken);
-            
+
             HttpEntity<MultiValueMap<String, String>> entity = new HttpEntity<>(body, headers);
-            
+
             ResponseEntity<Map> response = restTemplate.exchange(
                 tokenUrl,
                 HttpMethod.POST,
                 entity,
                 Map.class
             );
-            
-            Map<String, Object> responseBody = response.getBody();
 
-            if (responseBody == null) {
-                throw new RuntimeException(AppConstants.Messages.TOKEN_REFRESH_FAILED);
+            Map<String, Object> responseBody = response.getBody();
+            if (responseBody != null) {
+                return AuthResponse.builder()
+                    .accessToken((String) responseBody.get("access_token"))
+                    .refreshToken((String) responseBody.get("refresh_token"))
+                    .expiresIn((Integer) responseBody.get("expires_in"))
+                    .tokenType((String) responseBody.get("token_type"))
+                    .build();
             }
 
-            return AuthResponse.builder()
-                .accessToken((String) responseBody.get("access_token"))
-                .refreshToken((String) responseBody.get("refresh_token"))
-                .tokenType(AppConstants.Keycloak.TOKEN_TYPE_BEARER)
-                .expiresIn(((Number) responseBody.get("expires_in")).longValue())
-                .build();
+            throw new RuntimeException("Invalid response from Keycloak");
 
         } catch (Exception e) {
-            log.error("Error refreshing token: {}", e.getMessage(), e);
-            throw new RuntimeException(AppConstants.Messages.TOKEN_REFRESH_FAILED + ": " + e.getMessage());
+            log.error("Error during token refresh: {}", e.getMessage(), e);
+            throw new RuntimeException("Token refresh failed: " + e.getMessage());
         }
     }
-    
+
+    /**
+     * Logout user
+     */
+    public void logout(String refreshToken) {
+        try {
+            String logoutUrl = keycloakServerUrl +
+                AppConstants.Keycloak.getRealmPath(keycloakRealmName) +
+                AppConstants.Keycloak.LOGOUT_ENDPOINT;
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+
+            MultiValueMap<String, String> body = new LinkedMultiValueMap<>();
+            body.add("client_id", keycloakClientId);
+            
+            if (keycloakClientSecret != null && !keycloakClientSecret.isEmpty()) {
+                body.add("client_secret", keycloakClientSecret);
+            }
+            body.add("refresh_token", refreshToken);
+
+            HttpEntity<MultiValueMap<String, String>> entity = new HttpEntity<>(body, headers);
+
+            restTemplate.exchange(
+                logoutUrl,
+                HttpMethod.POST,
+                entity,
+                String.class
+            );
+
+            log.info(AppConstants.Messages.USER_LOGGED_OUT_SUCCESS);
+
+        } catch (Exception e) {
+            log.error("Error during logout: {}", e.getMessage(), e);
+            throw new RuntimeException(AppConstants.Messages.LOGOUT_FAILED + ": " + e.getMessage());
+        }
+    }
+
     /**
      * Get admin token for Keycloak admin operations
      */
@@ -237,63 +271,22 @@ public class KeycloakService {
             body.add("client_id", keycloakAdminClientId);
             body.add("username", keycloakAdminUsername);
             body.add("password", keycloakAdminPassword);
-            
+
             HttpEntity<MultiValueMap<String, String>> entity = new HttpEntity<>(body, headers);
-            
+
             ResponseEntity<Map> response = restTemplate.exchange(
                 tokenUrl,
                 HttpMethod.POST,
                 entity,
                 Map.class
             );
-            
+
             Map<String, Object> responseBody = response.getBody();
             return responseBody != null ? (String) responseBody.get("access_token") : null;
 
         } catch (Exception e) {
             log.error("Error getting admin token: {}", e.getMessage(), e);
-            throw new RuntimeException(AppConstants.Messages.KEYCLOAK_ADMIN_TOKEN_FAILED);
-        }
-    }
-    
-    /**
-     * Logout user
-     */
-    public void logout(String refreshToken) {
-        // Verify Keycloak is available
-        if (!keycloakHealthService.isKeycloakAvailable()) {
-            throw new RuntimeException("Keycloak is required for user logout but is not available");
-        }
-        
-        try {
-            String logoutUrl = keycloakServerUrl + 
-                AppConstants.Keycloak.getRealmPath(keycloakRealmName) + 
-                AppConstants.Keycloak.LOGOUT_ENDPOINT;
-
-            HttpHeaders headers = new HttpHeaders();
-            headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
-
-            MultiValueMap<String, String> body = new LinkedMultiValueMap<>();
-            body.add("client_id", keycloakClientId);
-            if (keycloakClientSecret != null && !keycloakClientSecret.isEmpty()) {
-                body.add("client_secret", keycloakClientSecret);
-            }
-            body.add("refresh_token", refreshToken);
-
-            HttpEntity<MultiValueMap<String, String>> entity = new HttpEntity<>(body, headers);
-
-            restTemplate.exchange(
-                logoutUrl,
-                HttpMethod.POST,
-                entity,
-                String.class
-            );
-
-            log.info(AppConstants.Messages.USER_LOGGED_OUT_SUCCESS);
-
-        } catch (Exception e) {
-            log.error("Error during logout: {}", e.getMessage(), e);
-            throw new RuntimeException(AppConstants.Messages.LOGOUT_FAILED + ": " + e.getMessage());
+            throw new RuntimeException(AppConstants.Messages.KEYCLOAK_ADMIN_TOKEN_FAILED + ": " + e.getMessage());
         }
     }
 }
