@@ -6,6 +6,7 @@ import com.ceedpods.crmbuild.exception.ResourceAlreadyExistsException;
 import com.ceedpods.crmbuild.exception.ResourceNotFoundException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -93,6 +94,20 @@ public class GlobalExceptionHandler {
         response.put("message", ex.getMessage());
 
         return ResponseEntity.status(HttpStatus.CONFLICT).body(response);
+    }
+
+    /**
+     * Handle access denied errors (403 Forbidden)
+     */
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<Map<String, Object>> handleAccessDeniedException(AccessDeniedException ex) {
+        Map<String, Object> response = new HashMap<>();
+        response.put("timestamp", LocalDateTime.now());
+        response.put("status", HttpStatus.FORBIDDEN.value());
+        response.put("error", "Forbidden");
+        response.put("message", ex.getMessage());
+
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(response);
     }
 
     /**
