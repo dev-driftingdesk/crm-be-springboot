@@ -115,6 +115,7 @@ public final class AppConstants {
         public static final String COLLECTION_USER_RELATIONSHIPS = "user_relationships";
         public static final String COLLECTION_USER_INVITATIONS = "user_invitations";
         public static final String COLLECTION_AUDIT_LOGS = "audit_logs";
+        public static final String COLLECTION_PRODUCTS = "products";
     }
 
     // ==================== Response Messages ====================
