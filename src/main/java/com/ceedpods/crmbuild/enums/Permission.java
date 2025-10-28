@@ -15,8 +15,8 @@ public enum Permission {
     
     // Product Management Permissions
     PRODUCT_CREATE("PRODUCT_CREATE", "Create products", PermissionCategory.PRODUCT_MANAGEMENT, true, false),
-    PRODUCT_EDIT("PRODUCT_EDIT", "Edit products", PermissionCategory.PRODUCT_MANAGEMENT, false, true),
-    PRODUCT_DELETE("PRODUCT_DELETE", "Delete products", PermissionCategory.PRODUCT_MANAGEMENT, false, true),
+    PRODUCT_EDIT("PRODUCT_EDIT", "Edit products", PermissionCategory.PRODUCT_MANAGEMENT, true, false),
+    PRODUCT_DELETE("PRODUCT_DELETE", "Delete products", PermissionCategory.PRODUCT_MANAGEMENT, true, false),
     PRODUCT_VIEW_ALL("PRODUCT_VIEW_ALL", "View all products", PermissionCategory.PRODUCT_MANAGEMENT, false, true),
     PRODUCT_PRICING("PRODUCT_PRICING", "Manage product pricing", PermissionCategory.PRODUCT_MANAGEMENT, false, true),
     
