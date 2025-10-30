@@ -172,4 +172,25 @@ public class CustomPermissionEvaluator {
         String keycloakId = getKeycloakId(authentication);
         return keycloakId != null ? userService.findByKeycloakId(keycloakId) : null;
     }
+
+    /**
+     * Check if the current user is an admin
+     */
+    public boolean isAdmin(Authentication authentication) {
+        try {
+            User currentUser = getCurrentUser(authentication);
+            if (currentUser == null) {
+                log.debug("User not found for authentication");
+                return false;
+            }
+
+            boolean isAdmin = currentUser.getRole() == UserRole.ADMIN;
+            log.debug("User {} is admin: {}", currentUser.getId(), isAdmin);
+            return isAdmin;
+
+        } catch (Exception e) {
+            log.error("Error checking if user is admin: {}", e.getMessage());
+            return false;
+        }
+    }
 }
