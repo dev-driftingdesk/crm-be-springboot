@@ -30,7 +30,7 @@ spring:
 # Keycloak Configuration - Required for application startup
 keycloak:
   # Server Configuration
-  server-url: ${KEYCLOAK_SERVER_URL:http://authceedpods.cec3hedzgkdchfaf.eastus.azurecontainer.io:8080}
+  server-url: ${KEYCLOAK_SERVER_URL:https://ceedpods-keycloak.wittycliff-5b88c7b4.westus2.azurecontainerapps.io}
   realm-name: ${KEYCLOAK_REALM_NAME:ceedpods}
   
   # Client Configuration
