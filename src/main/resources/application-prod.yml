@@ -1,0 +1,99 @@
+# Production configuration for Azure Container Apps
+server:
+  port: 8084
+  servlet:
+    context-path: /api/v1
+  # Production server settings
+  tomcat:
+    max-threads: 200
+    min-spare-threads: 10
+  compression:
+    enabled: true
+    mime-types: text/html,text/xml,text/plain,text/css,text/javascript,application/javascript,application/json
+    min-response-size: 1024
+
+spring:
+  application:
+    name: crmbuild-service
+
+  # Disable ANSI colors for container logs
+  output:
+    ansi:
+      enabled: NEVER
+
+  data:
+    mongodb:
+      uri: ${MONGODB_URI}
+      auto-index-creation: true
+
+  # OAuth2 configuration - Keycloak integration
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ${KEYCLOAK_ISSUER_URI:${keycloak.server-url}/realms/${keycloak.realm-name}}
+          jwk-set-uri: ${KEYCLOAK_JWK_SET_URI:${keycloak.server-url}/realms/${keycloak.realm-name}/protocol/openid-connect/certs}
+
+# Keycloak Configuration
+keycloak:
+  server-url: ${KEYCLOAK_SERVER_URL}
+  realm-name: ${KEYCLOAK_REALM_NAME}
+  client-id: ${KEYCLOAK_CLIENT_ID}
+  client-secret: ${KEYCLOAK_CLIENT_SECRET}
+  
+  admin:
+    username: ${KEYCLOAK_ADMIN_USERNAME}
+    password: ${KEYCLOAK_ADMIN_PASSWORD}
+    client-id: ${KEYCLOAK_ADMIN_CLIENT_ID:admin-cli}
+  
+  connection:
+    timeout: ${KEYCLOAK_CONNECTION_TIMEOUT:5000}
+
+# External service configurations
+twilio:
+  account-sid: ${TWILIO_ACCOUNT_SID:}
+  auth-token: ${TWILIO_AUTH_TOKEN:}
+  phone-number: ${TWILIO_PHONE_NUMBER:}
+
+meta:
+  app-id: ${META_APP_ID:}
+  app-secret: ${META_APP_SECRET:}
+  access-token: ${META_ACCESS_TOKEN:}
+
+google:
+  ads:
+    client-id: ${GOOGLE_ADS_CLIENT_ID:}
+    client-secret: ${GOOGLE_ADS_CLIENT_SECRET:}
+    developer-token: ${GOOGLE_ADS_DEVELOPER_TOKEN:}
+
+deepgram:
+  api-key: ${DEEPGRAM_API_KEY:}
+
+# Production logging configuration
+logging:
+  level:
+    root: INFO
+    com.ceedpods.crmbuild: INFO
+    org.springframework.security: WARN
+    org.springframework.web: WARN
+    org.mongodb: WARN
+    org.springframework.data.mongodb: WARN
+  pattern:
+    console: "%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+
+# Actuator configuration for monitoring
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: when-authorized
+      probes:
+        enabled: true
+  metrics:
+    export:
+      prometheus:
+        enabled: true
