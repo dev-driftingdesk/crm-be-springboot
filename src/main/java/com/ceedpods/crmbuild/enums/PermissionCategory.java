@@ -6,6 +6,7 @@ public enum PermissionCategory {
     ANALYTICS("Analytics & Reporting"),
     COMMUNICATION("Communication & Calls"),
     LEAD_MANAGEMENT("Lead Management"),
+    DEAL_MANAGEMENT("Deal Management"),
     SYSTEM_ADMINISTRATION("System Administration"),
     CUSTOMER_MANAGEMENT("Customer Management"),
     SALES_MANAGEMENT("Sales Management"),

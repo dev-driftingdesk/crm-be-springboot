@@ -70,42 +70,81 @@ public class AdminUserInitializer {
             keycloakAdminService.createRealmRole(AppConstants.Keycloak.ROLE_USER, AppConstants.Keycloak.ROLE_USER_DESC);
             log.info("✓ All roles created: ADMIN, MANAGER, SALES_REP, USER");
 
-            // Step 2: Create admin user in Keycloak
+            // Step 2: Create admin user in Keycloak or get existing user
             log.info("Step 2: Creating admin user in Keycloak...");
             log.info("Email: {}", AppConstants.DefaultUsers.ADMIN_EMAIL);
 
-            RegisterRequest adminRequest = RegisterRequest.builder()
-                .email(AppConstants.DefaultUsers.ADMIN_EMAIL)
-                .password(AppConstants.DefaultUsers.ADMIN_PASSWORD)
-                .confirmPassword(AppConstants.DefaultUsers.ADMIN_PASSWORD)
-                .firstName(AppConstants.DefaultUsers.ADMIN_FIRST_NAME)
-                .lastName(AppConstants.DefaultUsers.ADMIN_LAST_NAME)
-                .build();
+            String keycloakId = null;
+            try {
+                RegisterRequest adminRequest = RegisterRequest.builder()
+                    .email(AppConstants.DefaultUsers.ADMIN_EMAIL)
+                    .password(AppConstants.DefaultUsers.ADMIN_PASSWORD)
+                    .confirmPassword(AppConstants.DefaultUsers.ADMIN_PASSWORD)
+                    .firstName(AppConstants.DefaultUsers.ADMIN_FIRST_NAME)
+                    .lastName(AppConstants.DefaultUsers.ADMIN_LAST_NAME)
+                    .build();
 
-            String keycloakId = keycloakService.registerUser(adminRequest);
-            log.info("✓ User created in Keycloak. ID: {}", keycloakId);
+                keycloakId = keycloakService.registerUser(adminRequest);
+                log.info("✓ User created in Keycloak. ID: {}", keycloakId);
+            } catch (org.springframework.web.client.HttpClientErrorException.Conflict e) {
+                // User already exists (409 Conflict) - retrieve existing user
+                log.info("User already exists in Keycloak, retrieving existing user...");
+                keycloakId = keycloakAdminService.getUserByEmail(AppConstants.DefaultUsers.ADMIN_EMAIL);
+                if (keycloakId != null) {
+                    log.info("✓ Using existing user from Keycloak. ID: {}", keycloakId);
+                } else {
+                    throw new RuntimeException("User exists in Keycloak but could not retrieve user ID");
+                }
+            } catch (Exception e) {
+                // Check if error message indicates user exists (fallback check)
+                if (e.getMessage() != null && (e.getMessage().contains("409") || e.getMessage().contains("User exists"))) {
+                    log.info("User already exists in Keycloak (detected via message), retrieving existing user...");
+                    keycloakId = keycloakAdminService.getUserByEmail(AppConstants.DefaultUsers.ADMIN_EMAIL);
+                    if (keycloakId != null) {
+                        log.info("✓ Using existing user from Keycloak. ID: {}", keycloakId);
+                    } else {
+                        throw new RuntimeException("User exists in Keycloak but could not retrieve user ID");
+                    }
+                } else {
+                    throw e;
+                }
+            }
 
             // Step 3: Assign ADMIN role
             log.info("Step 3: Assigning ADMIN role to user in Keycloak...");
             keycloakAdminService.assignRealmRoleToUser(keycloakId, AppConstants.Keycloak.ROLE_ADMIN);
             log.info("✓ ADMIN role assigned");
 
-            // Step 4: Save to MongoDB
+            // Step 4: Save to MongoDB or update existing user
             log.info("Step 4: Saving admin user to MongoDB...");
-            User adminUser = User.builder()
-                .keycloakId(keycloakId)
-                .email(AppConstants.DefaultUsers.ADMIN_EMAIL)
-                .firstName(AppConstants.DefaultUsers.ADMIN_FIRST_NAME)
-                .lastName(AppConstants.DefaultUsers.ADMIN_LAST_NAME)
-                .role(UserRole.ADMIN)
-                .enabled(true)
-                .build();
 
-            userRepository.save(adminUser);
-            log.info("✓ User saved to MongoDB");
+            // Check if user already exists in MongoDB
+            User existingUser = userRepository.findByKeycloakId(keycloakId).orElse(null);
+
+            if (existingUser != null) {
+                log.info("User already exists in MongoDB, updating if necessary...");
+                // Update existing user to ensure it has admin role
+                existingUser.setRole(UserRole.ADMIN);
+                existingUser.setEnabled(true);
+                userRepository.save(existingUser);
+                log.info("✓ Existing user updated in MongoDB");
+            } else {
+                // Create new user
+                User adminUser = User.builder()
+                    .keycloakId(keycloakId)
+                    .email(AppConstants.DefaultUsers.ADMIN_EMAIL)
+                    .firstName(AppConstants.DefaultUsers.ADMIN_FIRST_NAME)
+                    .lastName(AppConstants.DefaultUsers.ADMIN_LAST_NAME)
+                    .role(UserRole.ADMIN)
+                    .enabled(true)
+                    .build();
+
+                userRepository.save(adminUser);
+                log.info("✓ User saved to MongoDB");
+            }
 
             log.info("=============================================================");
-            log.info("✓✓✓ ADMIN USER CREATED SUCCESSFULLY! ✓✓✓");
+            log.info("✓✓✓ ADMIN USER INITIALIZED SUCCESSFULLY! ✓✓✓");
             log.info("=============================================================");
             log.info("USE THESE CREDENTIALS TO LOG IN:");
             log.info("Email: {}", AppConstants.DefaultUsers.ADMIN_EMAIL);

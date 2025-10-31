@@ -103,6 +103,10 @@ public class KeycloakService {
             log.info("User registered successfully in Keycloak: {}", request.getEmail());
             return null;
 
+        } catch (org.springframework.web.client.HttpClientErrorException.Conflict e) {
+            // User already exists - this is not an error, just return null to indicate user exists
+            log.info("User already exists in Keycloak: {}", request.getEmail());
+            throw e; // Re-throw so caller can handle it
         } catch (Exception e) {
             log.error("Error registering user in Keycloak: {}", e.getMessage(), e);
             throw new RuntimeException(AppConstants.Messages.KEYCLOAK_REGISTRATION_FAILED + ": " + e.getMessage());

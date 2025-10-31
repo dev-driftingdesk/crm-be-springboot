@@ -15,8 +15,8 @@ public enum Permission {
     
     // Product Management Permissions
     PRODUCT_CREATE("PRODUCT_CREATE", "Create products", PermissionCategory.PRODUCT_MANAGEMENT, true, false),
-    PRODUCT_EDIT("PRODUCT_EDIT", "Edit products", PermissionCategory.PRODUCT_MANAGEMENT, false, true),
-    PRODUCT_DELETE("PRODUCT_DELETE", "Delete products", PermissionCategory.PRODUCT_MANAGEMENT, false, true),
+    PRODUCT_EDIT("PRODUCT_EDIT", "Edit products", PermissionCategory.PRODUCT_MANAGEMENT, true, false),
+    PRODUCT_DELETE("PRODUCT_DELETE", "Delete products", PermissionCategory.PRODUCT_MANAGEMENT, true, false),
     PRODUCT_VIEW_ALL("PRODUCT_VIEW_ALL", "View all products", PermissionCategory.PRODUCT_MANAGEMENT, false, true),
     PRODUCT_PRICING("PRODUCT_PRICING", "Manage product pricing", PermissionCategory.PRODUCT_MANAGEMENT, false, true),
     
@@ -43,7 +43,15 @@ public enum Permission {
     LEAD_ASSIGN("LEAD_ASSIGN", "Assign leads to sales reps", PermissionCategory.LEAD_MANAGEMENT, false, true),
     LEAD_IMPORT("LEAD_IMPORT", "Import leads from external sources", PermissionCategory.LEAD_MANAGEMENT, false, true),
     LEAD_EXPORT("LEAD_EXPORT", "Export lead data", PermissionCategory.LEAD_MANAGEMENT, false, true),
-    
+
+    // Deal Management Permissions
+    DEAL_CREATE("DEAL_CREATE", "Create deals", PermissionCategory.DEAL_MANAGEMENT, false, true),
+    DEAL_EDIT("DEAL_EDIT", "Edit deals", PermissionCategory.DEAL_MANAGEMENT, false, true),
+    DEAL_DELETE("DEAL_DELETE", "Delete deals", PermissionCategory.DEAL_MANAGEMENT, false, true),
+    DEAL_VIEW_ALL("DEAL_VIEW_ALL", "View all deals", PermissionCategory.DEAL_MANAGEMENT, false, true),
+    DEAL_VIEW_TEAM("DEAL_VIEW_TEAM", "View team deals only", PermissionCategory.DEAL_MANAGEMENT, false, true),
+    DEAL_ASSIGN("DEAL_ASSIGN", "Assign deals to sales reps", PermissionCategory.DEAL_MANAGEMENT, false, true),
+
     // Customer Management Permissions
     CUSTOMER_CREATE("CUSTOMER_CREATE", "Create customers", PermissionCategory.CUSTOMER_MANAGEMENT, false, true),
     CUSTOMER_EDIT("CUSTOMER_EDIT", "Edit customer details", PermissionCategory.CUSTOMER_MANAGEMENT, false, true),
