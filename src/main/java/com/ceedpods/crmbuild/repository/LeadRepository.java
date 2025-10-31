@@ -11,22 +11,15 @@ import java.util.Optional;
 @Repository
 public interface LeadRepository extends MongoRepository<Lead, String> {
 
-    Optional<Lead> findByLeadId(String leadId);
-
-    boolean existsByLeadId(String leadId);
-
     @Query("{ 'deleted': false }")
     List<Lead> findByDeletedFalse();
 
     // Use Spring Data derived query instead of @Query for count methods
     long countByDeletedFalse();
 
-    @Query("{ 'leadId': ?0, 'deleted': false }")
-    Optional<Lead> findByLeadIdAndDeletedFalse(String leadId);
-
     @Query("{ '$or': [ " +
            "{ 'leadName': { '$regex': ?0, '$options': 'i' } }, " +
-           "{ 'leadId': { '$regex': ?0, '$options': 'i' } }, " +
+           "{ '_id': { '$regex': ?0, '$options': 'i' } }, " +
            "{ 'company': { '$regex': ?0, '$options': 'i' } }, " +
            "{ 'contactNumber': { '$regex': ?0, '$options': 'i' } }, " +
            "{ 'platform': { '$regex': ?0, '$options': 'i' } } " +

@@ -8,6 +8,7 @@ import com.ceedpods.crmbuild.exception.BadRequestException;
 import com.ceedpods.crmbuild.exception.ForbiddenException;
 import com.ceedpods.crmbuild.exception.ResourceNotFoundException;
 import com.ceedpods.crmbuild.mapper.LeadMapper;
+import com.ceedpods.crmbuild.repository.DealRepository;
 import com.ceedpods.crmbuild.repository.LeadRepository;
 import com.ceedpods.crmbuild.security.CustomPermissionEvaluator;
 import lombok.RequiredArgsConstructor;
@@ -17,7 +18,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -25,6 +25,7 @@ import java.util.UUID;
 public class LeadService {
 
     private final LeadRepository leadRepository;
+    private final DealRepository dealRepository;
     private final LeadMapper leadMapper;
     private final CustomPermissionEvaluator permissionEvaluator;
 
@@ -38,23 +39,13 @@ public class LeadService {
     }
 
     /**
-     * Get lead by ID
+     * Get lead by ID (UUID)
      */
     public LeadDTO getLeadById(String id) {
-        log.info("Fetching lead with ID: {}", id);
+        log.info("Fetching lead with UUID: {}", id);
         Lead lead = leadRepository.findById(id)
             .filter(l -> !l.isDeleted())
-            .orElseThrow(() -> new ResourceNotFoundException("Lead not found with ID: " + id));
-        return leadMapper.toDTO(lead);
-    }
-
-    /**
-     * Get lead by Lead ID
-     */
-    public LeadDTO getLeadByLeadId(String leadId) {
-        log.info("Fetching lead with Lead ID: {}", leadId);
-        Lead lead = leadRepository.findByLeadIdAndDeletedFalse(leadId)
-            .orElseThrow(() -> new ResourceNotFoundException("Lead not found with Lead ID: " + leadId));
+            .orElseThrow(() -> new ResourceNotFoundException("Lead not found with UUID: " + id));
         return leadMapper.toDTO(lead);
     }
 
@@ -71,13 +62,16 @@ public class LeadService {
             throw new ForbiddenException("Only admin users can create leads");
         }
 
-        // Generate UUID for leadId
-        String leadId = UUID.randomUUID().toString();
-        log.debug("Generated UUID for lead: {}", leadId);
+        // Validate deal ID exists (now mandatory)
+        validateDealExists(request.getDealId());
+
+        // Generate UUID for the lead _id
+        String uuid = java.util.UUID.randomUUID().toString();
+        log.debug("Generated UUID for lead: {}", uuid);
 
         // Create lead entity with all fields
         Lead lead = Lead.builder()
-            .leadId(leadId) // Auto-generated UUID
+            .id(uuid) // Set UUID as the _id
             .originatedFrom(request.getOriginatedFrom())
             .leadName(request.getLeadName())
             .company(request.getCompany())
@@ -86,12 +80,17 @@ public class LeadService {
             .communication(request.getCommunication())
             .platform(request.getPlatform())
             .contactNumber(request.getContactNumber())
-            .dealId(request.getDealId()) // Optional field
+            .dealId(request.getDealId()) // Required field
             .build();
 
-        // Save lead (audit fields are automatically handled by Spring Data Auditing)
+        // Save lead
+        // Audit fields (createdAt, createdBy, updatedAt, updatedBy) are automatically set by Spring Data Auditing:
+        // - createdAt: Current timestamp
+        // - createdBy: Current user's MongoDB ID from JWT token
+        // - updatedAt: Current timestamp
+        // - updatedBy: Current user's MongoDB ID from JWT token
         Lead savedLead = leadRepository.save(lead);
-        log.info("Successfully created lead with ID: {} and UUID: {} by admin user", savedLead.getId(), savedLead.getLeadId());
+        log.info("Successfully created lead with UUID: {} by user: {}", savedLead.getId(), savedLead.getCreatedBy());
 
         return leadMapper.toDTO(savedLead);
     }
@@ -115,6 +114,9 @@ public class LeadService {
             .orElseThrow(() -> new ResourceNotFoundException("Lead not found with ID: " + id));
 
         // Note: leadId (UUID) cannot be updated once created
+
+        // Validate deal ID exists (now mandatory)
+        validateDealExists(request.getDealId());
 
         // Update fields if provided
         if (request.getOriginatedFrom() != null) {
@@ -141,19 +143,22 @@ public class LeadService {
         if (request.getContactNumber() != null) {
             lead.setContactNumber(request.getContactNumber());
         }
-        if (request.getDealId() != null) {
-            lead.setDealId(request.getDealId());
-        }
+        // DealId is now mandatory and already validated
+        lead.setDealId(request.getDealId());
 
-        // Save updated lead (updatedAt and updatedBy are automatically handled by Spring Data Auditing)
+        // Save updated lead
+        // Audit fields are automatically updated by Spring Data Auditing:
+        // - updatedAt: Set to current timestamp
+        // - updatedBy: Set to current user's MongoDB ID from JWT token
+        // (createdAt and createdBy remain unchanged)
         Lead updatedLead = leadRepository.save(lead);
-        log.info("Successfully updated lead with ID: {} by admin user", updatedLead.getId());
+        log.info("Successfully updated lead with ID: {} by user: {}", updatedLead.getId(), updatedLead.getUpdatedBy());
 
         return leadMapper.toDTO(updatedLead);
     }
 
     /**
-     * Delete lead (soft delete) (Admin only)
+     * Delete lead (hard delete - removes from database) (Admin only)
      */
     @Transactional
     public void deleteLead(String id, Authentication authentication) {
@@ -165,19 +170,14 @@ public class LeadService {
             throw new ForbiddenException("Only admin users can delete leads");
         }
 
-        // Find existing lead
+        // Find existing lead (check both active and soft-deleted leads)
         Lead lead = leadRepository.findById(id)
-            .filter(l -> !l.isDeleted())
             .orElseThrow(() -> new ResourceNotFoundException("Lead not found with ID: " + id));
 
-        // Get current user ID for audit
-        String deletedBy = permissionEvaluator.getCurrentKeycloakId(authentication);
+        // Hard delete - actually remove from database
+        leadRepository.delete(lead);
 
-        // Soft delete
-        lead.markAsDeleted(deletedBy);
-        leadRepository.save(lead);
-
-        log.info("Successfully deleted lead with ID: {} by admin user", id);
+        log.info("Successfully deleted lead with ID: {} from database by admin user", id);
     }
 
     /**
@@ -203,5 +203,20 @@ public class LeadService {
         log.info("Fetching leads with Deal ID: {}", dealId);
         List<Lead> leads = leadRepository.findByDealIdAndDeletedFalse(dealId);
         return leadMapper.toDTO(leads);
+    }
+
+    /**
+     * Validate that a deal exists in the database
+     */
+    private void validateDealExists(String dealId) {
+        log.debug("Validating deal exists: {}", dealId);
+        boolean exists = dealRepository.findById(dealId)
+            .filter(d -> !d.isDeleted())
+            .isPresent();
+
+        if (!exists) {
+            log.error("Deal not found with ID: {}", dealId);
+            throw new BadRequestException("Deal not found with ID: " + dealId);
+        }
     }
 }

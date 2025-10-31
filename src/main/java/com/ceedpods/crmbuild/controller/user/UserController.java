@@ -14,6 +14,7 @@ import com.ceedpods.crmbuild.service.user.UserHierarchyService;
 import com.ceedpods.crmbuild.service.user.UserService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -48,13 +49,13 @@ public class UserController {
             Authentication authentication) {
         try {
             String createdBy = permissionEvaluator.getCurrentKeycloakId(authentication);
-            
+
             // Validate password confirmation if needed
             if (request.getPassword() == null || request.getPassword().trim().isEmpty()) {
                 return ResponseEntity.badRequest()
                     .body(ApiResponse.error("Password is required"));
             }
-            
+
             User user = userService.createUser(
                 request.getEmail(),
                 request.getFirstName(),
@@ -63,18 +64,18 @@ public class UserController {
                 request.getPassword(),
                 createdBy
             );
-            
+
             // Update additional fields
-            if (request.getPhoneNumber() != null || request.getDepartment() != null || 
+            if (request.getPhoneNumber() != null || request.getDepartment() != null ||
                 request.getTerritory() != null || request.getJobTitle() != null) {
-                
+
                 user.setPhoneNumber(request.getPhoneNumber());
                 user.setDepartment(request.getDepartment());
                 user.setTerritory(request.getTerritory());
                 user.setJobTitle(request.getJobTitle());
                 user = userService.save(user);
             }
-            
+
             // Assign to manager if specified and user is sales rep
             if (request.getRole() == UserRole.SALES_REP && request.getAssignedManagerId() != null) {
                 try {
@@ -89,14 +90,29 @@ public class UserController {
                     log.warn("Failed to assign manager during user creation: {}", e.getMessage());
                 }
             }
-            
+
             UserDTO userDTO = userMapper.toDTO(user);
             return ResponseEntity.ok(ApiResponse.success("User created successfully", userDTO));
-            
-        } catch (Exception e) {
-            log.error("Error creating user: {}", e.getMessage());
+
+        } catch (RuntimeException e) {
+            log.error("Error creating user: {}", e.getMessage(), e);
+
+            // Check if it's a Keycloak connectivity issue
+            String errorMessage = e.getMessage();
+            if (errorMessage != null &&
+                (errorMessage.contains("Keycloak") ||
+                 errorMessage.contains("admin token") ||
+                 errorMessage.contains("not available"))) {
+                return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                    .body(ApiResponse.error("Keycloak authentication service is not available. Please ensure Keycloak is running and properly configured. Error: " + errorMessage));
+            }
+
             return ResponseEntity.badRequest()
-                .body(ApiResponse.error("Failed to create user: " + e.getMessage()));
+                .body(ApiResponse.error("Failed to create user: " + errorMessage));
+        } catch (Exception e) {
+            log.error("Unexpected error creating user: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(ApiResponse.error("An unexpected error occurred while creating user. Please check the server logs."));
         }
     }
     

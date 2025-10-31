@@ -1,31 +1,26 @@
 package com.ceedpods.crmbuild.mapper;
 
-import com.ceedpods.crmbuild.dto.lead.LeadDTO;
-import com.ceedpods.crmbuild.entity.lead.Lead;
+import com.ceedpods.crmbuild.dto.deal.DealDTO;
+import com.ceedpods.crmbuild.entity.deal.Deal;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
 import java.util.stream.Collectors;
 
 @Component
-public class LeadMapper {
+public class DealMapper {
 
-    public LeadDTO toDTO(Lead entity) {
+    public DealDTO toDTO(Deal entity) {
         if (entity == null) {
             return null;
         }
 
-        LeadDTO dto = LeadDTO.builder()
+        DealDTO dto = DealDTO.builder()
             .id(entity.getId())
-            .originatedFrom(entity.getOriginatedFrom())
-            .leadName(entity.getLeadName())
-            .company(entity.getCompany())
-            .companyAddress(entity.getCompanyAddress())
-            .companyWebsite(entity.getCompanyWebsite())
-            .communication(entity.getCommunication())
-            .platform(entity.getPlatform())
-            .contactNumber(entity.getContactNumber())
-            .dealId(entity.getDealId())
+            .dealName(entity.getDealName())
+            .productIds(entity.getProductIds())
+            .salesReps(entity.getSalesReps())
+            .leadId(entity.getLeadId())
             .build();
 
         // Map audit fields from BaseEntity to BaseDTO
@@ -40,21 +35,16 @@ public class LeadMapper {
         return dto;
     }
 
-    public Lead toEntity(LeadDTO dto) {
+    public Deal toEntity(DealDTO dto) {
         if (dto == null) {
             return null;
         }
 
-        Lead entity = Lead.builder()
-            .originatedFrom(dto.getOriginatedFrom())
-            .leadName(dto.getLeadName())
-            .company(dto.getCompany())
-            .companyAddress(dto.getCompanyAddress())
-            .companyWebsite(dto.getCompanyWebsite())
-            .communication(dto.getCommunication())
-            .platform(dto.getPlatform())
-            .contactNumber(dto.getContactNumber())
-            .dealId(dto.getDealId())
+        Deal entity = Deal.builder()
+            .dealName(dto.getDealName())
+            .productIds(dto.getProductIds())
+            .salesReps(dto.getSalesReps())
+            .leadId(dto.getLeadId())
             .build();
 
         // Map ID and audit fields from BaseDTO to BaseEntity
@@ -70,7 +60,7 @@ public class LeadMapper {
         return entity;
     }
 
-    public List<LeadDTO> toDTO(List<Lead> entities) {
+    public List<DealDTO> toDTO(List<Deal> entities) {
         if (entities == null) {
             return null;
         }
@@ -80,7 +70,7 @@ public class LeadMapper {
             .collect(Collectors.toList());
     }
 
-    public List<Lead> toEntity(List<LeadDTO> dtos) {
+    public List<Deal> toEntity(List<DealDTO> dtos) {
         if (dtos == null) {
             return null;
         }

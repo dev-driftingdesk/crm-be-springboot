@@ -35,7 +35,7 @@ public class LeadController {
             @Valid @RequestBody CreateLeadRequest request,
             Authentication authentication) {
         try {
-           // log.info("Creating lead with Lead ID: {}", request.getle());
+            log.info("Creating new lead");
             LeadDTO lead = leadService.createLead(request, authentication);
             return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.success("Lead created successfully", lead));
@@ -64,31 +64,14 @@ public class LeadController {
     }
 
     /**
-     * Get lead by ID
+     * Get lead by UUID
      */
     @GetMapping("/{id}")
     @RequirePermission("LEAD_VIEW_ALL")
     public ResponseEntity<ApiResponse<LeadDTO>> getLeadById(@PathVariable String id) {
         try {
-            log.info("Fetching lead with ID: {}", id);
+            log.info("Fetching lead with UUID: {}", id);
             LeadDTO lead = leadService.getLeadById(id);
-            return ResponseEntity.ok(ApiResponse.success(lead));
-        } catch (Exception e) {
-            log.error("Error fetching lead: {}", e.getMessage());
-            return ResponseEntity.badRequest()
-                .body(ApiResponse.error("Failed to fetch lead: " + e.getMessage()));
-        }
-    }
-
-    /**
-     * Get lead by Lead ID
-     */
-    @GetMapping("/lead-id/{leadId}")
-    @RequirePermission("LEAD_VIEW_ALL")
-    public ResponseEntity<ApiResponse<LeadDTO>> getLeadByLeadId(@PathVariable String leadId) {
-        try {
-            log.info("Fetching lead with Lead ID: {}", leadId);
-            LeadDTO lead = leadService.getLeadByLeadId(leadId);
             return ResponseEntity.ok(ApiResponse.success(lead));
         } catch (Exception e) {
             log.error("Error fetching lead: {}", e.getMessage());

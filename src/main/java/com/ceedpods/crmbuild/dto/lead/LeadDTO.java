@@ -18,8 +18,7 @@ import java.util.Map;
 @EqualsAndHashCode(callSuper = true)
 public class LeadDTO extends BaseDTO {
 
-    private String id;
-    private String leadId; // UUID as string
+    private String id; // UUID as string
     private LeadOriginatedFrom originatedFrom;
     private String leadName;
     private String company;

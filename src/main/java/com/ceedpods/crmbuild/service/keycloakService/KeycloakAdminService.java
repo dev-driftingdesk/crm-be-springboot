@@ -292,7 +292,7 @@ public class KeycloakAdminService {
     public void deleteUser(String userId) {
         try {
             String adminToken = getAdminToken();
-            String userUrl = keycloakServerUrl + AppConstants.Keycloak.ADMIN_REALMS_PATH + 
+            String userUrl = keycloakServerUrl + AppConstants.Keycloak.ADMIN_REALMS_PATH +
                 keycloakRealmName + "/users/" + userId;
 
             HttpHeaders headers = new HttpHeaders();
@@ -306,6 +306,47 @@ public class KeycloakAdminService {
         } catch (Exception e) {
             log.error("Error deleting user '{}': {}", userId, e.getMessage());
             throw new RuntimeException("Failed to delete user from Keycloak: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Get user by email from Keycloak
+     * @param email User's email address
+     * @return User ID if found, null otherwise
+     */
+    public String getUserByEmail(String email) {
+        try {
+            String adminToken = getAdminToken();
+            String usersUrl = keycloakServerUrl + AppConstants.Keycloak.ADMIN_REALMS_PATH +
+                keycloakRealmName + "/users?email=" + email + "&exact=true";
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            headers.setBearerAuth(adminToken);
+
+            HttpEntity<Void> entity = new HttpEntity<>(headers);
+
+            ResponseEntity<List> response = restTemplate.exchange(
+                usersUrl,
+                HttpMethod.GET,
+                entity,
+                List.class
+            );
+
+            List<Map<String, Object>> users = response.getBody();
+            if (users != null && !users.isEmpty()) {
+                Map<String, Object> user = users.get(0);
+                String userId = (String) user.get("id");
+                log.info("Found existing user '{}' with ID: {}", email, userId);
+                return userId;
+            }
+
+            log.info("No user found with email: {}", email);
+            return null;
+
+        } catch (Exception e) {
+            log.error("Error getting user by email '{}': {}", email, e.getMessage());
+            return null;
         }
     }
 }

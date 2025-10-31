@@ -1,6 +1,7 @@
 package com.ceedpods.crmbuild.dto.request;
 
 import com.ceedpods.crmbuild.enums.LeadOriginatedFrom;
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -40,6 +41,7 @@ public class UpdateLeadRequest {
     @Size(max = 20, message = "Contact number must not exceed 20 characters")
     private String contactNumber;
 
+    @NotBlank(message = "Deal ID is required")
     @Size(max = 50, message = "Deal ID must not exceed 50 characters")
-    private String dealId; // Optional field - assigning a dealId is not mandatory
+    private String dealId; // Required field - dealId must be assigned
 }

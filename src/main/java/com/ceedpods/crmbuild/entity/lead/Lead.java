@@ -9,11 +9,11 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import org.springframework.data.annotation.Id;
-import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 @Data
 @Builder
@@ -24,10 +24,7 @@ import java.util.Map;
 public class Lead extends BaseEntity {
 
     @Id
-    private String id; // MongoDB ObjectId
-
-    @Indexed(unique = true)
-    private String leadId; // UUID stored as string
+    private String id; // UUID as primary ID
 
     private LeadOriginatedFrom originatedFrom; // Enum: facebook, whatsapp, instagram, email
 
