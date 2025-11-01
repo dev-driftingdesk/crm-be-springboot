@@ -29,7 +29,6 @@ public class CreateDealRequest {
 
     private List<String> salesReps; // List of user IDs (optional)
 
-    @NotBlank(message = "Lead ID is required")
     @Size(max = 50, message = "Lead ID must not exceed 50 characters")
-    private String leadId; // Single lead ID (required)
+    private String leadId; // Single lead ID (optional)
 }

@@ -67,8 +67,16 @@ public class DealService {
             throw new ForbiddenException("Only admin users can create deals");
         }
 
-        // Validate lead ID exists
-        validateLeadExists(request.getLeadId());
+        // Validate deal name is unique
+        if (dealRepository.countByDealNameAndDeletedFalse(request.getDealName()) > 0) {
+            log.error("Deal name already exists: {}", request.getDealName());
+            throw new BadRequestException("Deal with name '" + request.getDealName() + "' already exists");
+        }
+
+        // Validate lead ID exists (if provided)
+        if (request.getLeadId() != null && !request.getLeadId().trim().isEmpty()) {
+            validateLeadExists(request.getLeadId());
+        }
 
         // Validate all product IDs exist
         validateProductsExist(request.getProductIds());
@@ -119,10 +127,15 @@ public class DealService {
 
         // Update fields if provided and validate
         if (request.getDealName() != null) {
+            // Validate deal name is unique (excluding current deal)
+            if (dealRepository.countByDealNameAndIdNotAndDeletedFalse(request.getDealName(), id) > 0) {
+                log.error("Deal name already exists: {}", request.getDealName());
+                throw new BadRequestException("Deal with name '" + request.getDealName() + "' already exists");
+            }
             deal.setDealName(request.getDealName());
         }
 
-        if (request.getLeadId() != null) {
+        if (request.getLeadId() != null && !request.getLeadId().trim().isEmpty()) {
             validateLeadExists(request.getLeadId());
             deal.setLeadId(request.getLeadId());
         }
