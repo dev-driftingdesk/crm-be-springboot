@@ -16,6 +16,12 @@ public interface DealRepository extends MongoRepository<Deal, String> {
     // Use Spring Data derived query instead of @Query for count methods
     long countByDeletedFalse();
 
+    @Query(value = "{ 'dealName': ?0, 'deleted': false }", count = true)
+    long countByDealNameAndDeletedFalse(String dealName);
+
+    @Query(value = "{ 'dealName': ?0, '_id': { '$ne': ?1 }, 'deleted': false }", count = true)
+    long countByDealNameAndIdNotAndDeletedFalse(String dealName, String id);
+
     @Query("{ 'leadId': ?0, 'deleted': false }")
     List<Deal> findByLeadIdAndDeletedFalse(String leadId);
 
