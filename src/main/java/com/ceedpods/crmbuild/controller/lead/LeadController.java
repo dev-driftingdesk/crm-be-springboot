@@ -18,7 +18,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/leads")
+@RequestMapping("/leads")
 @RequiredArgsConstructor
 @Slf4j
 public class LeadController {
