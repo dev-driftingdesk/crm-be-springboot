@@ -2,6 +2,7 @@ package com.ceedpods.crmbuild.dto.lead;
 
 import com.ceedpods.crmbuild.dto.BaseDTO;
 import com.ceedpods.crmbuild.enums.LeadOriginatedFrom;
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -16,6 +17,9 @@ import java.util.Map;
 @NoArgsConstructor
 @AllArgsConstructor
 @EqualsAndHashCode(callSuper = true)
+@JsonPropertyOrder({"id", "originatedFrom", "leadName", "company", "companyAddress",
+                     "companyWebsite", "communication", "platform", "contactNumber", "dealId",
+                     "createdAt", "updatedAt", "createdBy", "updatedBy", "deleted", "deletedAt", "deletedBy"})
 public class LeadDTO extends BaseDTO {
 
     private String id; // UUID as string
