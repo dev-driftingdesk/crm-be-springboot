@@ -18,8 +18,8 @@ public class EmailService {
     
     // Simple email service implementation
     // In production, you would integrate with your email provider (SendGrid, AWS SES, etc.)
-    
-    private void sendEmail(String to, String subject, String body) {
+
+    public void sendEmail(String to, String subject, String body) {
         if (!emailEnabled) {
             log.info("Email sending disabled. Would send email to: {}, Subject: {}", to, subject);
             return;

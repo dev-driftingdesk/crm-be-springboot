@@ -392,7 +392,7 @@ public class AuthService {
 
         try {
             // Reset password in Keycloak
-            keycloakAdminService.resetUserPassword(user.getKeycloakId(), request.getNewPassword());
+            keycloakAdminService.updateUserPassword(user.getKeycloakId(), request.getNewPassword());
 
             // Update user's passwordChangedAt timestamp
             user.setPasswordChangedAt(LocalDateTime.now());
