@@ -17,6 +17,24 @@ spring:
       uri: ${MONGODB_URI:mongodb+srv://amithrathnayaka34_db_user:ceedpods1997@ceedpods.dszv2xr.mongodb.net/ceedpods?retryWrites=true&w=majority&appName=ceedpods}
       auto-index-creation: true
 
+  # Email Configuration (Spring Mail)
+  mail:
+    host: ${SMTP_HOST:smtp.gmail.com}
+    port: ${SMTP_PORT:587}
+    username: ${SMTP_USERNAME:}
+    password: ${SMTP_PASSWORD:}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+            required: true
+          connectiontimeout: 5000
+          timeout: 5000
+          writetimeout: 5000
+    test-connection: false
+
   # OAuth2 configuration - Keycloak required
   security:
     oauth2:
@@ -69,6 +87,19 @@ google:
 # Deepgram Configuration
 deepgram:
   api-key: ${DEEPGRAM_API_KEY:}
+
+# Application Configuration
+app:
+  url: ${APP_URL:http://localhost:8084}
+  email:
+    enabled: ${EMAIL_ENABLED:false}
+    from: ${EMAIL_FROM:noreply@ceedpods.com}
+    from-name: ${EMAIL_FROM_NAME:CRM System}
+  password-reset:
+    token-expiration-minutes: ${PASSWORD_RESET_TOKEN_EXPIRATION_MINUTES:15}
+    rate-limit:
+      max-requests-per-hour: ${PASSWORD_RESET_MAX_REQUESTS_PER_HOUR:5}
+      min-minutes-between-requests: ${PASSWORD_RESET_MIN_MINUTES_BETWEEN_REQUESTS:2}
 
 logging:
   level:

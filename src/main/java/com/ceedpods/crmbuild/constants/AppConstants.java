@@ -81,6 +81,9 @@ public final class AppConstants {
             "/auth/refresh",
             "/auth/logout",
             "/auth/admin/create-admin",
+            "/auth/forgot-password",
+            "/auth/verify-reset-code",
+            "/auth/reset-password",
             "/invitations/complete"
         };
 

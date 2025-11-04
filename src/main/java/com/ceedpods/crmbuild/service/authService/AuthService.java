@@ -5,6 +5,10 @@ import com.ceedpods.crmbuild.dto.AuthResponse;
 import com.ceedpods.crmbuild.dto.LoginRequest;
 import com.ceedpods.crmbuild.dto.RegisterRequest;
 import com.ceedpods.crmbuild.dto.UserDTO;
+import com.ceedpods.crmbuild.dto.request.ForgotPasswordRequest;
+import com.ceedpods.crmbuild.dto.request.ResetPasswordRequest;
+import com.ceedpods.crmbuild.dto.request.VerifyResetCodeRequest;
+import com.ceedpods.crmbuild.entity.PasswordResetToken;
 import com.ceedpods.crmbuild.entity.user.User;
 import com.ceedpods.crmbuild.enums.UserRole;
 import com.ceedpods.crmbuild.exception.AuthenticationException;
@@ -12,13 +16,19 @@ import com.ceedpods.crmbuild.exception.BadRequestException;
 import com.ceedpods.crmbuild.exception.ResourceAlreadyExistsException;
 import com.ceedpods.crmbuild.exception.ResourceNotFoundException;
 import com.ceedpods.crmbuild.mapper.UserMapper;
+import com.ceedpods.crmbuild.repository.PasswordResetTokenRepository;
 import com.ceedpods.crmbuild.repository.UserRepository;
+import com.ceedpods.crmbuild.service.emailService.EmailService;
 import com.ceedpods.crmbuild.service.keycloakService.KeycloakAdminService;
 import com.ceedpods.crmbuild.service.keycloakService.KeycloakService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDateTime;
+import java.util.Random;
 
 @Service
 @RequiredArgsConstructor
@@ -29,6 +39,12 @@ public class AuthService {
     private final KeycloakAdminService keycloakAdminService;
     private final UserRepository userRepository;
     private final UserMapper userMapper;
+    private final PasswordResetTokenRepository passwordResetTokenRepository;
+    private final EmailService emailService;
+    private final PasswordResetRateLimiter rateLimiter;
+
+    @Value("${app.password-reset.token-expiration-minutes:15}")
+    private int tokenExpirationMinutes;
 
     /**
      * Register a new user in both Keycloak and MongoDB (Admin only)
@@ -249,5 +265,169 @@ public class AuthService {
             });
 
         return userMapper.toDTO(user);
+    }
+
+    /**
+     * Initiate password reset process by sending verification code to user's email
+     *
+     * @param request ForgotPasswordRequest containing user's email
+     * @throws ResourceNotFoundException if user not found (404 Not Found)
+     */
+    @Transactional
+    public void requestPasswordReset(ForgotPasswordRequest request) {
+        // Check rate limit first
+        if (!rateLimiter.isRequestAllowed(request.getEmail())) {
+            long minutesUntilNext = rateLimiter.getMinutesUntilNextRequest(request.getEmail());
+            int remainingRequests = rateLimiter.getRemainingRequests(request.getEmail());
+
+            if (minutesUntilNext > 0) {
+                throw new BadRequestException(
+                    String.format("Too many password reset requests. Please wait %d minutes before trying again.", minutesUntilNext)
+                );
+            } else {
+                throw new BadRequestException(
+                    "Maximum password reset requests exceeded. Please try again later."
+                );
+            }
+        }
+
+        // Find user by email
+        User user = userRepository.findByEmail(request.getEmail())
+            .orElseThrow(() -> {
+                log.warn("Password reset requested for non-existent email: {}", request.getEmail());
+                return new ResourceNotFoundException(AppConstants.Messages.USER_NOT_FOUND);
+            });
+
+        // Check if user account is enabled
+        if (!user.isEnabled()) {
+            log.warn("Password reset requested for disabled account: {}", request.getEmail());
+            throw new BadRequestException("Account is disabled. Please contact administrator.");
+        }
+
+        // Generate 6-digit verification code
+        String verificationCode = generateVerificationCode();
+
+        // Create password reset token with configurable expiration
+        PasswordResetToken resetToken = PasswordResetToken.builder()
+            .email(user.getEmail())
+            .code(verificationCode)
+            .expiresAt(LocalDateTime.now().plusMinutes(tokenExpirationMinutes))
+            .used(false)
+            .createdAt(LocalDateTime.now())
+            .build();
+
+        // Save token to database
+        passwordResetTokenRepository.save(resetToken);
+
+        // Send verification code via email
+        emailService.sendPasswordResetEmail(user.getEmail(), verificationCode);
+
+        log.info("Password reset verification code sent to: {}", user.getEmail());
+    }
+
+    /**
+     * Verify the password reset code
+     *
+     * @param request VerifyResetCodeRequest containing email and verification code
+     * @throws BadRequestException if code is invalid, expired, or already used (400 Bad Request)
+     */
+    public void verifyResetCode(VerifyResetCodeRequest request) {
+        // Find token by email and code
+        PasswordResetToken resetToken = passwordResetTokenRepository.findByEmailAndCode(
+            request.getEmail(),
+            request.getCode()
+        ).orElseThrow(() -> {
+            log.warn("Invalid verification code attempted for email: {}", request.getEmail());
+            return new BadRequestException("Invalid or expired verification code");
+        });
+
+        // Check if token is expired
+        if (resetToken.isExpired()) {
+            log.warn("Expired verification code used for email: {}", request.getEmail());
+            throw new BadRequestException("Verification code has expired. Please request a new one.");
+        }
+
+        // Check if token has been used
+        if (resetToken.isUsed()) {
+            log.warn("Already used verification code attempted for email: {}", request.getEmail());
+            throw new BadRequestException("Verification code has already been used. Please request a new one.");
+        }
+
+        log.info("Verification code validated successfully for: {}", request.getEmail());
+    }
+
+    /**
+     * Reset user password using verification code
+     *
+     * @param request ResetPasswordRequest containing email, code, and new password
+     * @throws ResourceNotFoundException if user not found (404 Not Found)
+     * @throws BadRequestException if passwords don't match or code is invalid (400 Bad Request)
+     */
+    @Transactional
+    public void resetPassword(ResetPasswordRequest request) {
+        // Validate password confirmation
+        validatePasswordConfirmation(request.getNewPassword(), request.getConfirmPassword());
+
+        // Find and validate reset token
+        PasswordResetToken resetToken = passwordResetTokenRepository.findByEmailAndCode(
+            request.getEmail(),
+            request.getCode()
+        ).orElseThrow(() -> {
+            log.warn("Invalid verification code for password reset: {}", request.getEmail());
+            return new BadRequestException("Invalid or expired verification code");
+        });
+
+        // Validate token (not expired, not used)
+        if (!resetToken.isValid()) {
+            log.warn("Invalid or expired token used for password reset: {}", request.getEmail());
+            throw new BadRequestException("Verification code is invalid or has expired. Please request a new one.");
+        }
+
+        // Find user
+        User user = userRepository.findByEmail(request.getEmail())
+            .orElseThrow(() -> {
+                log.warn("User not found during password reset: {}", request.getEmail());
+                return new ResourceNotFoundException(AppConstants.Messages.USER_NOT_FOUND);
+            });
+
+        try {
+            // Reset password in Keycloak
+            keycloakAdminService.updateUserPassword(user.getKeycloakId(), request.getNewPassword());
+
+            // Update user's passwordChangedAt timestamp
+            user.setPasswordChangedAt(LocalDateTime.now());
+            user.setMustChangePassword(false);
+
+            // Reset failed login attempts if account was locked
+            if (user.isAccountLocked()) {
+                user.unlockAccount();
+            }
+
+            userRepository.save(user);
+
+            // Mark token as used
+            resetToken.markAsUsed();
+            passwordResetTokenRepository.save(resetToken);
+
+            // Send confirmation email
+            emailService.sendPasswordResetConfirmationEmail(user.getEmail(), user.getFirstName());
+
+            log.info("Password reset successfully for user: {}", user.getEmail());
+
+        } catch (Exception e) {
+            log.error("Error resetting password for user {}: {}", request.getEmail(), e.getMessage(), e);
+            throw new RuntimeException("Failed to reset password. Please try again or contact administrator.");
+        }
+    }
+
+    /**
+     * Generate a random 6-digit verification code
+     *
+     * @return 6-digit verification code as String
+     */
+    private String generateVerificationCode() {
+        Random random = new Random();
+        int code = 100000 + random.nextInt(900000); // Generates number between 100000 and 999999
+        return String.valueOf(code);
     }
 }
