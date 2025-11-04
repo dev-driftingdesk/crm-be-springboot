@@ -2,73 +2,52 @@ package com.ceedpods.crmbuild.service.emailService;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+/**
+ * Email service that delegates to ProductionEmailService for actual email sending.
+ * This service uses Spring Mail (JavaMailSender) to send emails via SMTP.
+ */
 @Service
 @RequiredArgsConstructor
 @Slf4j
 public class EmailService {
-    
-    @Value("${app.email.enabled:false}")
-    private boolean emailEnabled;
-    
-    @Value("${app.email.from:noreply@ceedpods.com}")
-    private String fromEmail;
-    
-    // Simple email service implementation
-    // In production, you would integrate with your email provider (SendGrid, AWS SES, etc.)
 
+    private final ProductionEmailService productionEmailService;
+
+    /**
+     * Send a generic email with plain text or HTML content
+     *
+     * @param to Recipient email address
+     * @param subject Email subject
+     * @param body Email body (can be plain text or HTML)
+     */
     public void sendEmail(String to, String subject, String body) {
-        if (!emailEnabled) {
-            log.info("Email sending disabled. Would send email to: {}, Subject: {}", to, subject);
-            return;
-        }
-
-        try {
-            log.info("Sending email to: {}", to);
-            log.info("Subject: {}", subject);
-            log.debug("Body: {}", body);
-
-            // Simulate email sending
-            Thread.sleep(100);
-
-            log.info("Email sent successfully to: {}", to);
-
-        } catch (Exception e) {
-            log.error("Failed to send email to {}: {}", to, e.getMessage());
-            throw new RuntimeException("Failed to send email: " + e.getMessage());
-        }
+        log.info("Sending email to: {} with subject: {}", to, subject);
+        // Convert plain text to HTML by replacing newlines with <br> tags
+        String htmlBody = body.replace("\n", "<br>");
+        productionEmailService.sendHtmlEmail(to, subject, htmlBody);
     }
 
-    public void sendPasswordResetEmail(String to, String resetToken) {
-        String subject = "Password Reset Request";
-        String body = String.format(
-            "Dear User,\n\n" +
-            "You have requested a password reset for your CRM System account.\n\n" +
-            "Please use the following verification code to reset your password:\n\n" +
-            "Verification Code: %s\n\n" +
-            "This code will expire in 15 minutes.\n\n" +
-            "If you did not request this reset, please ignore this email.\n\n" +
-            "Best regards,\n" +
-            "CRM System Team",
-            resetToken
-        );
-
-        sendEmail(to, subject, body);
+    /**
+     * Send password reset email with verification code
+     *
+     * @param to Recipient email address
+     * @param verificationCode 6-digit verification code
+     */
+    public void sendPasswordResetEmail(String to, String verificationCode) {
+        log.info("Sending password reset email to: {}", to);
+        productionEmailService.sendPasswordResetEmail(to, verificationCode);
     }
 
+    /**
+     * Send password reset confirmation email
+     *
+     * @param to Recipient email address
+     * @param firstName User's first name
+     */
     public void sendPasswordResetConfirmationEmail(String to, String firstName) {
-        String subject = "Password Reset Successful";
-        String body = String.format(
-            "Dear %s,\n\n" +
-            "Your password has been successfully reset.\n\n" +
-            "If you did not make this change, please contact your administrator immediately.\n\n" +
-            "Best regards,\n" +
-            "CRM System Team",
-            firstName
-        );
-
-        sendEmail(to, subject, body);
+        log.info("Sending password reset confirmation email to: {}", to);
+        productionEmailService.sendPasswordResetConfirmationEmail(to, firstName);
     }
 }

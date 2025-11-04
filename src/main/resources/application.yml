@@ -18,18 +18,22 @@ spring:
       auto-index-creation: true
 
   # Email Configuration (Spring Mail)
+  # Using Ceedpods mail server with SSL/TLS
   mail:
-    host: ${SMTP_HOST:smtp.gmail.com}
-    port: ${SMTP_PORT:587}
-    username: ${SMTP_USERNAME:}
-    password: ${SMTP_PASSWORD:}
+    host: ${SMTP_HOST:mail.ceedpods.com}
+    port: ${SMTP_PORT:465}
+    username: ${SMTP_USERNAME:noreply@ceedpods.com}
+    password: ${SMTP_PASSWORD:kA_M=H-NKaEpyasp}
     properties:
       mail:
         smtp:
           auth: true
-          starttls:
+          ssl:
             enable: true
             required: true
+          socketFactory:
+            class: javax.net.ssl.SSLSocketFactory
+            port: 465
           connectiontimeout: 5000
           timeout: 5000
           writetimeout: 5000
@@ -92,9 +96,9 @@ deepgram:
 app:
   url: ${APP_URL:http://localhost:8084}
   email:
-    enabled: ${EMAIL_ENABLED:false}
+    enabled: ${EMAIL_ENABLED:true}
     from: ${EMAIL_FROM:noreply@ceedpods.com}
-    from-name: ${EMAIL_FROM_NAME:CRM System}
+    from-name: ${EMAIL_FROM_NAME:Ceedpods CRM}
   password-reset:
     token-expiration-minutes: ${PASSWORD_RESET_TOKEN_EXPIRATION_MINUTES:15}
     rate-limit:
