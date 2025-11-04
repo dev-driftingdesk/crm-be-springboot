@@ -28,4 +28,10 @@ public interface LeadRepository extends MongoRepository<Lead, String> {
 
     @Query("{ 'dealId': ?0, 'deleted': false }")
     List<Lead> findByDealIdAndDeletedFalse(String dealId);
+
+    @Query(value = "{ 'leadName': ?0, 'deleted': false }", exists = true)
+    boolean existsByLeadNameAndDeletedFalse(String leadName);
+
+    @Query(value = "{ 'dealId': ?0, 'deleted': false }", exists = true)
+    boolean existsByDealIdAndDeletedFalse(String dealId);
 }
