@@ -62,8 +62,20 @@ public class LeadService {
             throw new ForbiddenException("Only admin users can create leads");
         }
 
+        // Check if lead name already exists
+        if (leadRepository.existsByLeadNameAndDeletedFalse(request.getLeadName())) {
+            log.warn("Attempted to create lead with duplicate name: {}", request.getLeadName());
+            throw new BadRequestException("A lead with this name already exists. Please use a different name.");
+        }
+
         // Validate deal ID exists (now mandatory)
         validateDealExists(request.getDealId());
+
+        // Check if dealId is already linked to another lead
+        if (leadRepository.existsByDealIdAndDeletedFalse(request.getDealId())) {
+            log.warn("Attempted to create lead with duplicate dealId: {}", request.getDealId());
+            throw new BadRequestException("A lead is already linked to this deal. Please choose a different deal.");
+        }
 
         // Generate UUID for the lead _id
         String uuid = java.util.UUID.randomUUID().toString();
@@ -118,11 +130,27 @@ public class LeadService {
         // Validate deal ID exists (now mandatory)
         validateDealExists(request.getDealId());
 
+        // Check if dealId is being changed to a different deal that's already linked to another lead
+        if (!request.getDealId().equals(lead.getDealId())) {
+            if (leadRepository.existsByDealIdAndDeletedFalse(request.getDealId())) {
+                log.warn("Attempted to update lead to duplicate dealId: {}", request.getDealId());
+                throw new BadRequestException("A lead is already linked to this deal. Please choose a different deal.");
+            }
+        }
+
         // Update fields if provided
         if (request.getOriginatedFrom() != null) {
             lead.setOriginatedFrom(request.getOriginatedFrom());
         }
         if (request.getLeadName() != null) {
+            // Check if the new lead name already exists (excluding current lead)
+            // Only check if the name is actually being changed
+            if (!request.getLeadName().equals(lead.getLeadName())) {
+                if (leadRepository.existsByLeadNameAndDeletedFalse(request.getLeadName())) {
+                    log.warn("Attempted to update lead to duplicate name: {}", request.getLeadName());
+                    throw new BadRequestException("A lead with this name already exists. Please use a different name.");
+                }
+            }
             lead.setLeadName(request.getLeadName());
         }
         if (request.getCompany() != null) {

@@ -2,6 +2,7 @@ package com.ceedpods.crmbuild.dto.product;
 
 import com.ceedpods.crmbuild.dto.BaseDTO;
 import com.ceedpods.crmbuild.enums.ProductStatus;
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -15,6 +16,9 @@ import java.math.BigDecimal;
 @NoArgsConstructor
 @AllArgsConstructor
 @EqualsAndHashCode(callSuper = true)
+@JsonPropertyOrder({"id", "productId", "productName", "productDescription", "productSubDescription",
+                     "productValue", "productStatus",
+                     "createdAt", "updatedAt", "createdBy", "updatedBy", "deleted", "deletedAt", "deletedBy"})
 public class ProductDTO extends BaseDTO {
 
     private String id;

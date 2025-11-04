@@ -1,6 +1,7 @@
 package com.ceedpods.crmbuild.dto.deal;
 
 import com.ceedpods.crmbuild.dto.BaseDTO;
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -14,6 +15,8 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 @EqualsAndHashCode(callSuper = true)
+@JsonPropertyOrder({"id", "dealName", "productIds", "salesReps", "leadId",
+                     "createdAt", "updatedAt", "createdBy", "updatedBy", "deleted", "deletedAt", "deletedBy"})
 public class DealDTO extends BaseDTO {
 
     private String id; // UUID as string (dealId)
