@@ -1,6 +1,8 @@
 package com.ceedpods.crmbuild.repository;
 
 import com.ceedpods.crmbuild.entity.deal.Deal;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.mongodb.repository.MongoRepository;
 import org.springframework.data.mongodb.repository.Query;
 import org.springframework.stereotype.Repository;
@@ -36,4 +38,18 @@ public interface DealRepository extends MongoRepository<Deal, String> {
            "{ '_id': { '$regex': ?0, '$options': 'i' } } " +
            "], 'deleted': false }")
     List<Deal> searchDeals(String searchTerm);
+
+    // Paginated search method for performance optimization
+    @Query("{ '$or': [ " +
+           "{ 'dealName': { '$regex': ?0, '$options': 'i' } }, " +
+           "{ '_id': { '$regex': ?0, '$options': 'i' } } " +
+           "], 'deleted': false }")
+    Page<Deal> searchDeals(String searchTerm, Pageable pageable);
+
+    // Count search results for pagination
+    @Query(value = "{ '$or': [ " +
+           "{ 'dealName': { '$regex': ?0, '$options': 'i' } }, " +
+           "{ '_id': { '$regex': ?0, '$options': 'i' } } " +
+           "], 'deleted': false }", count = true)
+    long countSearchResults(String searchTerm);
 }

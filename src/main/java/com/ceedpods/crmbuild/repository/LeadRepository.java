@@ -1,6 +1,8 @@
 package com.ceedpods.crmbuild.repository;
 
 import com.ceedpods.crmbuild.entity.lead.Lead;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.mongodb.repository.MongoRepository;
 import org.springframework.data.mongodb.repository.Query;
 import org.springframework.stereotype.Repository;
@@ -25,6 +27,26 @@ public interface LeadRepository extends MongoRepository<Lead, String> {
            "{ 'platform': { '$regex': ?0, '$options': 'i' } } " +
            "], 'deleted': false }")
     List<Lead> searchLeads(String searchTerm);
+
+    // Paginated search method for performance optimization
+    @Query("{ '$or': [ " +
+           "{ 'leadName': { '$regex': ?0, '$options': 'i' } }, " +
+           "{ '_id': { '$regex': ?0, '$options': 'i' } }, " +
+           "{ 'company': { '$regex': ?0, '$options': 'i' } }, " +
+           "{ 'contactNumber': { '$regex': ?0, '$options': 'i' } }, " +
+           "{ 'platform': { '$regex': ?0, '$options': 'i' } } " +
+           "], 'deleted': false }")
+    Page<Lead> searchLeads(String searchTerm, Pageable pageable);
+
+    // Count search results for pagination
+    @Query(value = "{ '$or': [ " +
+           "{ 'leadName': { '$regex': ?0, '$options': 'i' } }, " +
+           "{ '_id': { '$regex': ?0, '$options': 'i' } }, " +
+           "{ 'company': { '$regex': ?0, '$options': 'i' } }, " +
+           "{ 'contactNumber': { '$regex': ?0, '$options': 'i' } }, " +
+           "{ 'platform': { '$regex': ?0, '$options': 'i' } } " +
+           "], 'deleted': false }", count = true)
+    long countSearchResults(String searchTerm);
 
     @Query("{ 'dealId': ?0, 'deleted': false }")
     List<Lead> findByDealIdAndDeletedFalse(String dealId);
