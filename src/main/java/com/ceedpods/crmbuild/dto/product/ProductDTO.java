@@ -16,13 +16,12 @@ import java.math.BigDecimal;
 @NoArgsConstructor
 @AllArgsConstructor
 @EqualsAndHashCode(callSuper = true)
-@JsonPropertyOrder({"id", "productId", "productName", "productDescription", "productSubDescription",
+@JsonPropertyOrder({"id", "productName", "productDescription", "productSubDescription",
                      "productValue", "productStatus",
                      "createdAt", "updatedAt", "createdBy", "updatedBy", "deleted", "deletedAt", "deletedBy"})
 public class ProductDTO extends BaseDTO {
 
     private String id;
-    private String productId;
     private String productName;
     private String productDescription;
     private String productSubDescription;

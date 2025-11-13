@@ -12,7 +12,7 @@ CONTAINER_APP_NAME="ceedpodservice"
 CONTAINER_APP_ENV="ceedpods"
 ACR_NAME="ceedpodsregister"
 IMAGE_NAME="ceedpodservice"
-IMAGE_TAG="v1.0.7"
+IMAGE_TAG="v1.0.10"
 
 echo "🚀 Starting deployment of CeedPods Service to Azure Container Apps..."
 
@@ -48,7 +48,9 @@ if [ "$APP_EXISTS" = "NOT_FOUND" ]; then
     --target-port 8084 \
     --env-vars \
       "SPRING_PROFILES_ACTIVE=prod" \
-      "SERVER_PORT=8084" \
+      "server.port=8084" \
+      "server.address=0.0.0.0" \
+      "APP_URL=https://api.teamhandle.com" \
       "MONGODB_URI=secretref:mongodb-uri" \
       "KEYCLOAK_SERVER_URL=https://ceedpods-keycloak.wittycliff-5b88c7b4.westus2.azurecontainerapps.io" \
       "KEYCLOAK_REALM_NAME=ceedpods" \
@@ -91,7 +93,9 @@ else
     --max-replicas 3 \
     --set-env-vars \
       "SPRING_PROFILES_ACTIVE=prod" \
-      "SERVER_PORT=8084" \
+      "server.port=8084" \
+      "server.address=0.0.0.0" \
+      "APP_URL=https://api.teamhandle.com" \
       "MONGODB_URI=secretref:mongodb-uri" \
       "KEYCLOAK_SERVER_URL=https://ceedpods-keycloak.wittycliff-5b88c7b4.westus2.azurecontainerapps.io" \
       "KEYCLOAK_REALM_NAME=ceedpods" \

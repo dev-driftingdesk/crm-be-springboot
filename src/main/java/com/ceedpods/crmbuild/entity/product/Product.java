@@ -25,8 +25,6 @@ public class Product extends BaseEntity {
 
     @Id
     private String id;
-
-
     private String productName;
     private String productDescription;
     private String productSubDescription;
