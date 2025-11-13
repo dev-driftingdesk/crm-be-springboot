@@ -9,7 +9,7 @@ set -e
 RESOURCE_GROUP="keycloak-rg"
 ACR_NAME="ceedpodsregister"
 IMAGE_NAME="ceedpodservice"
-IMAGE_TAG="${1:-latest}"
+IMAGE_TAG="${1:-v1.0.7}"
 
 echo "🚀 Building and pushing CeedPods Service..."
 echo "📦 Image: $ACR_NAME.azurecr.io/$IMAGE_NAME:$IMAGE_TAG"

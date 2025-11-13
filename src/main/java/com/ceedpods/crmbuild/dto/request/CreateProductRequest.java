@@ -18,9 +18,6 @@ import java.math.BigDecimal;
 @AllArgsConstructor
 public class CreateProductRequest {
 
-    @NotBlank(message = "Product ID is required")
-    @Size(max = 50, message = "Product ID must not exceed 50 characters")
-    private String productId;
 
     @NotBlank(message = "Product name is required")
     @Size(max = 200, message = "Product name must not exceed 200 characters")

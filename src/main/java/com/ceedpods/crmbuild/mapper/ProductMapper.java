@@ -17,7 +17,6 @@ public class ProductMapper {
 
         ProductDTO dto = ProductDTO.builder()
             .id(entity.getId())
-            .productId(entity.getProductId())
             .productName(entity.getProductName())
             .productDescription(entity.getProductDescription())
             .productSubDescription(entity.getProductSubDescription())
@@ -43,7 +42,7 @@ public class ProductMapper {
         }
 
         Product entity = Product.builder()
-            .productId(dto.getProductId())
+            .id(dto.getId())
             .productName(dto.getProductName())
             .productDescription(dto.getProductDescription())
             .productSubDescription(dto.getProductSubDescription())
@@ -60,6 +59,30 @@ public class ProductMapper {
         entity.setDeleted(dto.isDeleted());
         entity.setDeletedAt(dto.getDeletedAt());
         entity.setDeletedBy(dto.getDeletedBy());
+
+        return entity;
+    }
+
+    /**
+     * Converts DTO to Entity for creation, generating a new UUID for the ID
+     */
+    public Product toEntityForCreation(ProductDTO dto) {
+        if (dto == null) {
+            return null;
+        }
+
+        Product entity = Product.builder()
+            .id(java.util.UUID.randomUUID().toString()) // Generate UUID for new products
+            .productName(dto.getProductName())
+            .productDescription(dto.getProductDescription())
+            .productSubDescription(dto.getProductSubDescription())
+            .productValue(dto.getProductValue())
+            .productStatus(dto.getProductStatus())
+            .build();
+
+        // Don't set ID from DTO for creation - use generated UUID
+        // Don't set audit fields from DTO - let Spring Data handle them
+        entity.setDeleted(false); // Ensure new products are not marked as deleted
 
         return entity;
     }

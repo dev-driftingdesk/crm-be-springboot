@@ -43,31 +43,16 @@ public class ProductService {
         return productMapper.toDTO(product);
     }
 
-    /**
-     * Get product by Product ID
-     */
-    public ProductDTO getProductByProductId(String productId) {
-        log.info("Fetching product with Product ID: {}", productId);
-        Product product = productRepository.findByProductIdAndDeletedFalse(productId)
-            .orElseThrow(() -> new ResourceNotFoundException("Product not found with Product ID: " + productId));
-        return productMapper.toDTO(product);
-    }
 
     /**
      * Create new product
      */
     @Transactional
     public ProductDTO createProduct(CreateProductRequest request) {
-        log.info("Creating new product with Product ID: {}", request.getProductId());
+        log.info("Creating new product: {}", request.getProductName());
 
-        // Check if product ID already exists
-        if (productRepository.existsByProductId(request.getProductId())) {
-            throw new BadRequestException("Product with Product ID " + request.getProductId() + " already exists");
-        }
-
-        // Create product entity
-        Product product = Product.builder()
-            .productId(request.getProductId())
+        // Convert request to DTO first
+        ProductDTO dto = ProductDTO.builder()
             .productName(request.getProductName())
             .productDescription(request.getProductDescription())
             .productSubDescription(request.getProductSubDescription())
@@ -75,9 +60,12 @@ public class ProductService {
             .productStatus(request.getProductStatus())
             .build();
 
+        // Create product entity with UUID generation
+        Product product = productMapper.toEntityForCreation(dto);
+
         // Save product (audit fields are automatically handled by Spring Data Auditing)
         Product savedProduct = productRepository.save(product);
-        log.info("Successfully created product with ID: {}", savedProduct.getId());
+        log.info("Successfully created product with UUID: {}", savedProduct.getId());
 
         return productMapper.toDTO(savedProduct);
     }
@@ -93,14 +81,6 @@ public class ProductService {
         Product product = productRepository.findById(id)
             .filter(p -> !p.isDeleted())
             .orElseThrow(() -> new ResourceNotFoundException("Product not found with ID: " + id));
-
-        // Check if new product ID is unique (if being updated)
-        if (request.getProductId() != null && !request.getProductId().equals(product.getProductId())) {
-            if (productRepository.existsByProductId(request.getProductId())) {
-                throw new BadRequestException("Product with Product ID " + request.getProductId() + " already exists");
-            }
-            product.setProductId(request.getProductId());
-        }
 
         // Update fields if provided
         if (request.getProductName() != null) {

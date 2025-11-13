@@ -95,6 +95,7 @@ public final class AppConstants {
         // CORS settings
         public static final String[] ALLOWED_ORIGINS = {
             "http://localhost:3000",
+            "http://localhost:3030",
             "http://localhost:4200"
         };
 

@@ -26,8 +26,6 @@ public class Product extends BaseEntity {
     @Id
     private String id;
 
-    @Indexed(unique = true)
-    private String productId; // Custom product ID (e.g., PRD-001)
 
     private String productName;
     private String productDescription;

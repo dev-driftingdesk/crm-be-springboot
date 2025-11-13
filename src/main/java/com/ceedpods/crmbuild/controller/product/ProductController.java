@@ -35,7 +35,7 @@ public class ProductController {
             @Valid @RequestBody CreateProductRequest request,
             Authentication authentication) {
         try {
-            log.info("Creating product with Product ID: {}", request.getProductId());
+            log.info("Creating product: {}", request.getProductName());
             ProductDTO product = productService.createProduct(request);
             return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.success("Product created successfully", product));
@@ -80,22 +80,6 @@ public class ProductController {
         }
     }
 
-    /**
-     * Get product by Product ID
-     */
-    @GetMapping("/product-id/{productId}")
-    @RequirePermission("PRODUCT_VIEW_ALL")
-    public ResponseEntity<ApiResponse<ProductDTO>> getProductByProductId(@PathVariable String productId) {
-        try {
-            log.info("Fetching product with Product ID: {}", productId);
-            ProductDTO product = productService.getProductByProductId(productId);
-            return ResponseEntity.ok(ApiResponse.success(product));
-        } catch (Exception e) {
-            log.error("Error fetching product: {}", e.getMessage());
-            return ResponseEntity.badRequest()
-                .body(ApiResponse.error("Failed to fetch product: " + e.getMessage()));
-        }
-    }
 
     /**
      * Update product
