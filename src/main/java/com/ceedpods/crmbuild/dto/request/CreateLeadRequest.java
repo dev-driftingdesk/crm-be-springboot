@@ -44,7 +44,6 @@ public class CreateLeadRequest {
     @Size(max = 20, message = "Contact number must not exceed 20 characters")
     private String contactNumber;
 
-    @NotBlank(message = "Deal ID is required")
     @Size(max = 50, message = "Deal ID must not exceed 50 characters")
-    private String dealId; // Required field - dealId must be assigned
+    private String dealId; // Optional field - dealId can be null
 }
