@@ -68,13 +68,15 @@ public class LeadService {
             throw new BadRequestException("A lead with this name already exists. Please use a different name.");
         }
 
-        // Validate deal ID exists (now mandatory)
-        validateDealExists(request.getDealId());
+        // Validate deal ID exists and is unique (only if dealId is provided)
+        if (request.getDealId() != null && !request.getDealId().trim().isEmpty()) {
+            validateDealExists(request.getDealId());
 
-        // Check if dealId is already linked to another lead
-        if (leadRepository.existsByDealIdAndDeletedFalse(request.getDealId())) {
-            log.warn("Attempted to create lead with duplicate dealId: {}", request.getDealId());
-            throw new BadRequestException("A lead is already linked to this deal. Please choose a different deal.");
+            // Check if dealId is already linked to another lead
+            if (leadRepository.existsByDealIdAndDeletedFalse(request.getDealId())) {
+                log.warn("Attempted to create lead with duplicate dealId: {}", request.getDealId());
+                throw new BadRequestException("A lead is already linked to this deal. Please choose a different deal.");
+            }
         }
 
         // Generate UUID for the lead _id
@@ -92,7 +94,7 @@ public class LeadService {
             .communication(request.getCommunication())
             .platform(request.getPlatform())
             .contactNumber(request.getContactNumber())
-            .dealId(request.getDealId()) // Required field
+            .dealId(request.getDealId()) // Optional field - can be null
             .build();
 
         // Save lead
@@ -127,14 +129,16 @@ public class LeadService {
 
         // Note: leadId (UUID) cannot be updated once created
 
-        // Validate deal ID exists (now mandatory)
-        validateDealExists(request.getDealId());
+        // Validate deal ID exists and is unique (only if dealId is provided)
+        if (request.getDealId() != null && !request.getDealId().trim().isEmpty()) {
+            validateDealExists(request.getDealId());
 
-        // Check if dealId is being changed to a different deal that's already linked to another lead
-        if (!request.getDealId().equals(lead.getDealId())) {
-            if (leadRepository.existsByDealIdAndDeletedFalse(request.getDealId())) {
-                log.warn("Attempted to update lead to duplicate dealId: {}", request.getDealId());
-                throw new BadRequestException("A lead is already linked to this deal. Please choose a different deal.");
+            // Check if dealId is being changed to a different deal that's already linked to another lead
+            if (!request.getDealId().equals(lead.getDealId())) {
+                if (leadRepository.existsByDealIdAndDeletedFalse(request.getDealId())) {
+                    log.warn("Attempted to update lead to duplicate dealId: {}", request.getDealId());
+                    throw new BadRequestException("A lead is already linked to this deal. Please choose a different deal.");
+                }
             }
         }
 
@@ -171,8 +175,10 @@ public class LeadService {
         if (request.getContactNumber() != null) {
             lead.setContactNumber(request.getContactNumber());
         }
-        // DealId is now mandatory and already validated
-        lead.setDealId(request.getDealId());
+        // DealId is now optional - only update if provided and validated
+        if (request.getDealId() != null && !request.getDealId().trim().isEmpty()) {
+            lead.setDealId(request.getDealId());
+        }
 
         // Save updated lead
         // Audit fields are automatically updated by Spring Data Auditing:
