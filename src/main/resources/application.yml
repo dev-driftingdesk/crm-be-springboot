@@ -104,6 +104,8 @@ app:
     rate-limit:
       max-requests-per-hour: ${PASSWORD_RESET_MAX_REQUESTS_PER_HOUR:5}
       min-minutes-between-requests: ${PASSWORD_RESET_MIN_MINUTES_BETWEEN_REQUESTS:2}
+  encryption:
+    secret: ${ENCRYPTION_SECRET:my-secret-key-change-in-production}
 
 logging:
   level:
