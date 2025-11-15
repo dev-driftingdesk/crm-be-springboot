@@ -133,6 +133,13 @@
             <artifactId>jasypt-spring-boot-starter</artifactId>
             <version>3.0.5</version>
         </dependency>
+
+        <!-- Twilio SMS Integration -->
+        <dependency>
+            <groupId>com.twilio.sdk</groupId>
+            <artifactId>twilio</artifactId>
+            <version>10.5.1</version>
+        </dependency>
     </dependencies>
 
     <build>

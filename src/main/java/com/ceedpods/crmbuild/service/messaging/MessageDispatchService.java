@@ -25,6 +25,7 @@ public class MessageDispatchService {
     private final EncryptionService encryptionService;
     private final MetaWhatsAppService metaWhatsAppService;
     private final AzureEmailService azureEmailService;
+    private final TwilioSmsService twilioSmsService;
 
     public Message sendWhatsAppMessage(String agentId, String recipientPhone, String messageBody) {
         log.info("Agent {} sending WhatsApp message to {}", agentId, recipientPhone);
@@ -100,6 +101,46 @@ public class MessageDispatchService {
 
         } catch (Exception e) {
             log.error("Failed to send email: {}", e.getMessage(), e);
+            message.setStatus(MessageStatus.FAILED);
+            message.setFailureReason(e.getMessage());
+        }
+
+        return messageRepository.save(message);
+    }
+
+    public Message sendSms(String agentId, String recipientPhone, String messageBody) {
+        log.info("Agent {} sending SMS to {}", agentId, recipientPhone);
+
+        // Get agent's SMS credentials
+        AgentCredential credential = credentialRepository.findActiveByAgentIdAndChannel(agentId, "SMS")
+                .orElseThrow(() -> new BadRequestException("No Twilio SMS credentials found for agent"));
+
+        // Decrypt credentials
+        Map<String, String> decryptedCredentials = encryptionService.decryptMap(credential.getEncryptedCredentials());
+
+        // Create message record
+        Message message = Message.builder()
+                .id(UUID.randomUUID().toString())
+                .agentId(agentId)
+                .channel(MessageChannel.SMS)
+                .status(MessageStatus.PENDING)
+                .recipientPhone(recipientPhone)
+                .messageBody(messageBody)
+                .build();
+
+        try {
+            // Send via Twilio
+            String vendorMessageId = twilioSmsService.sendSms(recipientPhone, messageBody, decryptedCredentials);
+
+            // Mark as sent
+            message.setStatus(MessageStatus.SENT);
+            message.setSentAt(LocalDateTime.now());
+            message.setVendorMessageId(vendorMessageId);
+
+            log.info("SMS sent successfully. ID: {}", message.getId());
+
+        } catch (Exception e) {
+            log.error("Failed to send SMS: {}", e.getMessage(), e);
             message.setStatus(MessageStatus.FAILED);
             message.setFailureReason(e.getMessage());
         }

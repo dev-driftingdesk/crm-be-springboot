@@ -69,7 +69,8 @@ keycloak:
   connection:
     timeout: ${KEYCLOAK_CONNECTION_TIMEOUT:5000}
 
-# Twilio Configuration
+# Twilio Configuration (Optional - for global defaults)
+# SMS credentials are stored per-agent in database
 twilio:
   account-sid: ${TWILIO_ACCOUNT_SID:}
   auth-token: ${TWILIO_AUTH_TOKEN:}
