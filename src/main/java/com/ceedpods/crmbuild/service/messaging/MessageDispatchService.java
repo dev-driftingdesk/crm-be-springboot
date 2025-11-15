@@ -9,6 +9,7 @@ import com.ceedpods.crmbuild.repository.AgentCredentialRepository;
 import com.ceedpods.crmbuild.repository.MessageRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -26,6 +27,12 @@ public class MessageDispatchService {
     private final MetaWhatsAppService metaWhatsAppService;
     private final AzureEmailService azureEmailService;
     private final TwilioSmsService twilioSmsService;
+
+    @Value("${app.messaging.retry.initial-delay-minutes:5}")
+    private int initialDelayMinutes;
+
+    @Value("${app.messaging.retry.max-retries:3}")
+    private int maxRetries;
 
     public Message sendWhatsAppMessage(String agentId, String recipientPhone, String messageBody) {
         log.info("Agent {} sending WhatsApp message to {}", agentId, recipientPhone);
@@ -45,6 +52,8 @@ public class MessageDispatchService {
                 .status(MessageStatus.PENDING)
                 .recipientPhone(recipientPhone)
                 .messageBody(messageBody)
+                .retryCount(0)
+                .maxRetries(maxRetries)
                 .build();
 
         try {
@@ -62,6 +71,11 @@ public class MessageDispatchService {
             log.error("Failed to send message: {}", e.getMessage(), e);
             message.setStatus(MessageStatus.FAILED);
             message.setFailureReason(e.getMessage());
+
+            // Schedule first retry
+            LocalDateTime nextRetry = LocalDateTime.now().plusMinutes(initialDelayMinutes);
+            message.setNextRetryAt(nextRetry);
+            log.info("Message will retry in {} minutes at {}", initialDelayMinutes, nextRetry);
         }
 
         return messageRepository.save(message);
@@ -86,6 +100,8 @@ public class MessageDispatchService {
                 .recipientEmail(recipientEmail)
                 .subject(subject)
                 .messageBody(messageBody)
+                .retryCount(0)
+                .maxRetries(maxRetries)
                 .build();
 
         try {
@@ -103,6 +119,11 @@ public class MessageDispatchService {
             log.error("Failed to send email: {}", e.getMessage(), e);
             message.setStatus(MessageStatus.FAILED);
             message.setFailureReason(e.getMessage());
+
+            // Schedule first retry
+            LocalDateTime nextRetry = LocalDateTime.now().plusMinutes(initialDelayMinutes);
+            message.setNextRetryAt(nextRetry);
+            log.info("Email will retry in {} minutes at {}", initialDelayMinutes, nextRetry);
         }
 
         return messageRepository.save(message);
@@ -126,6 +147,8 @@ public class MessageDispatchService {
                 .status(MessageStatus.PENDING)
                 .recipientPhone(recipientPhone)
                 .messageBody(messageBody)
+                .retryCount(0)
+                .maxRetries(maxRetries)
                 .build();
 
         try {
@@ -143,6 +166,11 @@ public class MessageDispatchService {
             log.error("Failed to send SMS: {}", e.getMessage(), e);
             message.setStatus(MessageStatus.FAILED);
             message.setFailureReason(e.getMessage());
+
+            // Schedule first retry
+            LocalDateTime nextRetry = LocalDateTime.now().plusMinutes(initialDelayMinutes);
+            message.setNextRetryAt(nextRetry);
+            log.info("SMS will retry in {} minutes at {}", initialDelayMinutes, nextRetry);
         }
 
         return messageRepository.save(message);

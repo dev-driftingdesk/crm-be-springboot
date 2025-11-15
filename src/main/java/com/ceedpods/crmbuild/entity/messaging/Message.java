@@ -46,4 +46,10 @@ public class Message extends BaseEntity {
     private String vendorMessageId; // Vendor-specific message ID
     private LocalDateTime sentAt;
     private String failureReason;
+
+    // Retry mechanism
+    private Integer retryCount = 0; // Number of retry attempts made
+    private Integer maxRetries = 3; // Maximum retry attempts allowed
+    private LocalDateTime nextRetryAt; // When to attempt next retry
+    private LocalDateTime lastRetryAt; // When last retry was attempted
 }

@@ -24,6 +24,10 @@ public class MessageMapper {
                 .vendorMessageId(message.getVendorMessageId())
                 .sentAt(message.getSentAt())
                 .failureReason(message.getFailureReason())
+                .retryCount(message.getRetryCount())
+                .maxRetries(message.getMaxRetries())
+                .nextRetryAt(message.getNextRetryAt())
+                .lastRetryAt(message.getLastRetryAt())
                 .build();
     }
 }

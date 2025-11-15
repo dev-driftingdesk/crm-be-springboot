@@ -114,6 +114,13 @@ app:
       min-minutes-between-requests: ${PASSWORD_RESET_MIN_MINUTES_BETWEEN_REQUESTS:2}
   encryption:
     secret: ${ENCRYPTION_SECRET:my-secret-key-change-in-production}
+  messaging:
+    retry:
+      enabled: ${MESSAGING_RETRY_ENABLED:true}
+      max-retries: ${MESSAGING_MAX_RETRIES:3}
+      initial-delay-minutes: ${MESSAGING_INITIAL_DELAY_MINUTES:5}
+      backoff-multiplier: ${MESSAGING_BACKOFF_MULTIPLIER:2}
+      cron: ${MESSAGING_RETRY_CRON:0 */2 * * * *}
 
 logging:
   level:

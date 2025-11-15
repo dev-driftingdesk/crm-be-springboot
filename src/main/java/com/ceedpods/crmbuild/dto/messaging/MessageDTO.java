@@ -35,4 +35,14 @@ public class MessageDTO {
     private LocalDateTime sentAt;
 
     private String failureReason;
+
+    // Retry mechanism
+    private Integer retryCount;
+    private Integer maxRetries;
+
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd HH:mm:ss")
+    private LocalDateTime nextRetryAt;
+
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd HH:mm:ss")
+    private LocalDateTime lastRetryAt;
 }
