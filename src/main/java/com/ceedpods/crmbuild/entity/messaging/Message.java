@@ -29,15 +29,21 @@ public class Message extends BaseEntity {
     @Indexed
     private String agentId; // Keycloak user ID
 
-    private MessageChannel channel; // WHATSAPP
+    private MessageChannel channel; // WHATSAPP, EMAIL, etc.
 
     @Indexed
     private MessageStatus status; // PENDING, SENT, FAILED
 
+    // Recipient fields (channel-specific)
     private String recipientPhone; // WhatsApp phone number
+    private String recipientEmail; // Email address
+
+    // Message content
+    private String subject; // Email subject (null for WhatsApp)
     private String messageBody; // Message text
 
-    private String vendorMessageId; // Meta message ID
+    // Vendor tracking
+    private String vendorMessageId; // Vendor-specific message ID
     private LocalDateTime sentAt;
     private String failureReason;
 }

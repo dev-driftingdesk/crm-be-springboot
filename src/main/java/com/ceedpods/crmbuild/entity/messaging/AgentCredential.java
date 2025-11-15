@@ -27,8 +27,12 @@ public class AgentCredential extends BaseEntity {
     @Indexed
     private String agentId; // Keycloak user ID
 
-    // Encrypted Meta WhatsApp credentials
-    // Keys: "accessToken", "phoneNumberId", "businessAccountId"
+    @Indexed
+    private String channel; // Channel type: WHATSAPP, EMAIL, etc.
+
+    // Encrypted vendor credentials
+    // For WhatsApp: "accessToken", "phoneNumberId", "businessAccountId"
+    // For Email: "connectionString", "senderAddress"
     private Map<String, String> encryptedCredentials;
 
     private boolean active = true;

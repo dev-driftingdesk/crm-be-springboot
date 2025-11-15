@@ -1,8 +1,8 @@
 package com.ceedpods.crmbuild.controller.messaging;
 
 import com.ceedpods.crmbuild.dto.messaging.MessageDTO;
-import com.ceedpods.crmbuild.dto.request.SaveMetaCredentialRequest;
-import com.ceedpods.crmbuild.dto.request.SendWhatsAppMessageRequest;
+import com.ceedpods.crmbuild.dto.request.SaveAzureEmailCredentialRequest;
+import com.ceedpods.crmbuild.dto.request.SendEmailRequest;
 import com.ceedpods.crmbuild.dto.response.ApiResponse;
 import com.ceedpods.crmbuild.entity.messaging.AgentCredential;
 import com.ceedpods.crmbuild.entity.messaging.Message;
@@ -25,10 +25,10 @@ import java.util.Map;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/whatsapp")
+@RequestMapping("/email")
 @RequiredArgsConstructor
 @Slf4j
-public class WhatsAppController {
+public class EmailController {
 
     private final MessageDispatchService messageDispatchService;
     private final AgentCredentialRepository credentialRepository;
@@ -36,33 +36,32 @@ public class WhatsAppController {
     private final MessageMapper messageMapper;
 
     /**
-     * Save Meta WhatsApp credentials
-     * POST /api/v1/whatsapp/credentials
+     * Save Azure Communication Services Email credentials
+     * POST /api/v1/email/credentials
      */
     @PostMapping("/credentials")
     @RequirePermission("COMMUNICATION_SEND_SMS")
     public ResponseEntity<ApiResponse<String>> saveCredentials(
-            @Valid @RequestBody SaveMetaCredentialRequest request,
+            @Valid @RequestBody SaveAzureEmailCredentialRequest request,
             Authentication authentication) {
         try {
             String agentId = getKeycloakId(authentication);
-            log.info("Agent {} saving WhatsApp credentials", agentId);
+            log.info("Agent {} saving Azure email credentials", agentId);
 
             // Build credentials map
             Map<String, String> credentials = new HashMap<>();
-            credentials.put("accessToken", request.getAccessToken());
-            credentials.put("phoneNumberId", request.getPhoneNumberId());
-            credentials.put("businessAccountId", request.getBusinessAccountId());
+            credentials.put("connectionString", request.getConnectionString());
+            credentials.put("senderAddress", request.getSenderAddress());
 
             // Encrypt credentials
             Map<String, String> encrypted = encryptionService.encryptMap(credentials);
 
             // Check if credential exists
-            AgentCredential credential = credentialRepository.findActiveByAgentIdAndChannel(agentId, "WHATSAPP")
+            AgentCredential credential = credentialRepository.findActiveByAgentIdAndChannel(agentId, "EMAIL")
                     .orElse(AgentCredential.builder()
                             .id(UUID.randomUUID().toString())
                             .agentId(agentId)
-                            .channel("WHATSAPP")
+                            .channel("EMAIL")
                             .build());
 
             credential.setEncryptedCredentials(encrypted);
@@ -71,47 +70,48 @@ public class WhatsAppController {
             credentialRepository.save(credential);
 
             return ResponseEntity.status(HttpStatus.CREATED)
-                    .body(ApiResponse.success("WhatsApp credentials saved successfully", null));
+                    .body(ApiResponse.success("Azure email credentials saved successfully", null));
 
         } catch (Exception e) {
-            log.error("Error saving credentials: {}", e.getMessage(), e);
+            log.error("Error saving email credentials: {}", e.getMessage(), e);
             return ResponseEntity.badRequest()
-                    .body(ApiResponse.error("Failed to save credentials: " + e.getMessage()));
+                    .body(ApiResponse.error("Failed to save email credentials: " + e.getMessage()));
         }
     }
 
     /**
-     * Send WhatsApp message
-     * POST /api/v1/whatsapp/send
+     * Send email via Azure Communication Services
+     * POST /api/v1/email/send
      */
     @PostMapping("/send")
     @RequirePermission("COMMUNICATION_SEND_SMS")
-    public ResponseEntity<ApiResponse<MessageDTO>> sendMessage(
-            @Valid @RequestBody SendWhatsAppMessageRequest request,
+    public ResponseEntity<ApiResponse<MessageDTO>> sendEmail(
+            @Valid @RequestBody SendEmailRequest request,
             Authentication authentication) {
         try {
             String agentId = getKeycloakId(authentication);
-            log.info("Agent {} sending WhatsApp message", agentId);
+            log.info("Agent {} sending email", agentId);
 
-            Message message = messageDispatchService.sendWhatsAppMessage(
+            Message message = messageDispatchService.sendEmail(
                     agentId,
-                    request.getRecipientPhone(),
+                    request.getRecipientEmail(),
+                    request.getSubject(),
                     request.getMessageBody()
             );
 
             return ResponseEntity.status(HttpStatus.CREATED)
-                    .body(ApiResponse.success("Message sent", messageMapper.toDTO(message)));
+                    .body(ApiResponse.success("Email sent", messageMapper.toDTO(message)));
 
         } catch (Exception e) {
-            log.error("Error sending message: {}", e.getMessage(), e);
+            log.error("Error sending email: {}", e.getMessage(), e);
             return ResponseEntity.badRequest()
-                    .body(ApiResponse.error("Failed to send message: " + e.getMessage()));
+                    .body(ApiResponse.error("Failed to send email: " + e.getMessage()));
         }
     }
 
     /**
      * Get message by ID
-     * GET /api/v1/whatsapp/messages/{id}
+     * GET /api/v1/email/messages/{id}
      */
     @GetMapping("/messages/{id}")
     @RequirePermission("COMMUNICATION_SEND_SMS")

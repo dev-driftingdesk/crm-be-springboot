@@ -24,12 +24,13 @@ public class MessageDispatchService {
     private final AgentCredentialRepository credentialRepository;
     private final EncryptionService encryptionService;
     private final MetaWhatsAppService metaWhatsAppService;
+    private final AzureEmailService azureEmailService;
 
     public Message sendWhatsAppMessage(String agentId, String recipientPhone, String messageBody) {
         log.info("Agent {} sending WhatsApp message to {}", agentId, recipientPhone);
 
-        // Get agent's credentials
-        AgentCredential credential = credentialRepository.findActiveByAgentId(agentId)
+        // Get agent's WhatsApp credentials
+        AgentCredential credential = credentialRepository.findActiveByAgentIdAndChannel(agentId, "WHATSAPP")
                 .orElseThrow(() -> new BadRequestException("No WhatsApp credentials found for agent"));
 
         // Decrypt credentials
@@ -58,6 +59,47 @@ public class MessageDispatchService {
 
         } catch (Exception e) {
             log.error("Failed to send message: {}", e.getMessage(), e);
+            message.setStatus(MessageStatus.FAILED);
+            message.setFailureReason(e.getMessage());
+        }
+
+        return messageRepository.save(message);
+    }
+
+    public Message sendEmail(String agentId, String recipientEmail, String subject, String messageBody) {
+        log.info("Agent {} sending email to {}", agentId, recipientEmail);
+
+        // Get agent's email credentials
+        AgentCredential credential = credentialRepository.findActiveByAgentIdAndChannel(agentId, "EMAIL")
+                .orElseThrow(() -> new BadRequestException("No Azure email credentials found for agent"));
+
+        // Decrypt credentials
+        Map<String, String> decryptedCredentials = encryptionService.decryptMap(credential.getEncryptedCredentials());
+
+        // Create message record
+        Message message = Message.builder()
+                .id(UUID.randomUUID().toString())
+                .agentId(agentId)
+                .channel(MessageChannel.EMAIL)
+                .status(MessageStatus.PENDING)
+                .recipientEmail(recipientEmail)
+                .subject(subject)
+                .messageBody(messageBody)
+                .build();
+
+        try {
+            // Send via Azure Communication Services
+            String vendorMessageId = azureEmailService.sendEmail(recipientEmail, subject, messageBody, decryptedCredentials);
+
+            // Mark as sent
+            message.setStatus(MessageStatus.SENT);
+            message.setSentAt(LocalDateTime.now());
+            message.setVendorMessageId(vendorMessageId);
+
+            log.info("Email sent successfully. ID: {}", message.getId());
+
+        } catch (Exception e) {
+            log.error("Failed to send email: {}", e.getMessage(), e);
             message.setStatus(MessageStatus.FAILED);
             message.setFailureReason(e.getMessage());
         }

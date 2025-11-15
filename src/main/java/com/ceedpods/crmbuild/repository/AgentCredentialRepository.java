@@ -12,4 +12,7 @@ public interface AgentCredentialRepository extends MongoRepository<AgentCredenti
 
     @Query("{ 'agentId': ?0, 'active': true, 'deleted': false }")
     Optional<AgentCredential> findActiveByAgentId(String agentId);
+
+    @Query("{ 'agentId': ?0, 'channel': ?1, 'active': true, 'deleted': false }")
+    Optional<AgentCredential> findActiveByAgentIdAndChannel(String agentId, String channel);
 }
