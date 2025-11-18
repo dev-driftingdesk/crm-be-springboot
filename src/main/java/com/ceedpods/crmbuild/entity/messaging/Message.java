@@ -1,0 +1,55 @@
+package com.ceedpods.crmbuild.entity.messaging;
+
+import com.ceedpods.crmbuild.constants.AppConstants;
+import com.ceedpods.crmbuild.entity.BaseEntity;
+import com.ceedpods.crmbuild.enums.MessageChannel;
+import com.ceedpods.crmbuild.enums.MessageStatus;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.NoArgsConstructor;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.index.Indexed;
+import org.springframework.data.mongodb.core.mapping.Document;
+
+import java.time.LocalDateTime;
+
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+@EqualsAndHashCode(callSuper = true)
+@Document(collection = AppConstants.MongoDB.COLLECTION_MESSAGES)
+public class Message extends BaseEntity {
+
+    @Id
+    private String id;
+
+    @Indexed
+    private String agentId; // Keycloak user ID
+
+    private MessageChannel channel; // WHATSAPP, EMAIL, etc.
+
+    @Indexed
+    private MessageStatus status; // PENDING, SENT, FAILED
+
+    // Recipient fields (channel-specific)
+    private String recipientPhone; // WhatsApp phone number
+    private String recipientEmail; // Email address
+
+    // Message content
+    private String subject; // Email subject (null for WhatsApp)
+    private String messageBody; // Message text
+
+    // Vendor tracking
+    private String vendorMessageId; // Vendor-specific message ID
+    private LocalDateTime sentAt;
+    private String failureReason;
+
+    // Retry mechanism
+    private Integer retryCount = 0; // Number of retry attempts made
+    private Integer maxRetries = 3; // Maximum retry attempts allowed
+    private LocalDateTime nextRetryAt; // When to attempt next retry
+    private LocalDateTime lastRetryAt; // When last retry was attempted
+}

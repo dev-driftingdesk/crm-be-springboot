@@ -69,7 +69,8 @@ keycloak:
   connection:
     timeout: ${KEYCLOAK_CONNECTION_TIMEOUT:5000}
 
-# Twilio Configuration
+# Twilio Configuration (Optional - for global defaults)
+# SMS credentials are stored per-agent in database
 twilio:
   account-sid: ${TWILIO_ACCOUNT_SID:}
   auth-token: ${TWILIO_AUTH_TOKEN:}
@@ -80,6 +81,15 @@ meta:
   app-id: ${META_APP_ID:}
   app-secret: ${META_APP_SECRET:}
   access-token: ${META_ACCESS_TOKEN:}
+
+# Azure Communication Services Configuration
+# NOTE: Deprecated - Email now uses SMTP instead of Azure Communication Services
+# Per-agent SMTP credentials are stored encrypted in the database
+# azure:
+#   communication:
+#     email:
+#       connection-string: ${AZURE_COMMUNICATION_CONNECTION_STRING:}
+#       sender-address: ${AZURE_EMAIL_SENDER_ADDRESS:}
 
 # Google Ads Configuration
 google:
@@ -104,6 +114,15 @@ app:
     rate-limit:
       max-requests-per-hour: ${PASSWORD_RESET_MAX_REQUESTS_PER_HOUR:5}
       min-minutes-between-requests: ${PASSWORD_RESET_MIN_MINUTES_BETWEEN_REQUESTS:2}
+  encryption:
+    secret: ${ENCRYPTION_SECRET:my-secret-key-change-in-production}
+  messaging:
+    retry:
+      enabled: ${MESSAGING_RETRY_ENABLED:true}
+      max-retries: ${MESSAGING_MAX_RETRIES:3}
+      initial-delay-minutes: ${MESSAGING_INITIAL_DELAY_MINUTES:5}
+      backoff-multiplier: ${MESSAGING_BACKOFF_MULTIPLIER:2}
+      cron: ${MESSAGING_RETRY_CRON:0 */2 * * * *}
 
 logging:
   level:
