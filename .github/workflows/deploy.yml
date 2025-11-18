@@ -67,8 +67,10 @@ jobs:
 
     - name: Update version in pom.xml
       run: |
-        mvn versions:set -DnewVersion=${{ steps.version.outputs.version }}
-        mvn versions:commit
+        # Use sed to update version instead of maven plugin to avoid dependency issues
+        sed -i "s|<version>.*</version>|<version>${{ steps.version.outputs.version }}</version>|" pom.xml
+        echo "Updated version in pom.xml to ${{ steps.version.outputs.version }}"
+        grep -A 5 -B 5 "<version>" pom.xml | head -10
 
     - name: Run tests
       run: mvn test
