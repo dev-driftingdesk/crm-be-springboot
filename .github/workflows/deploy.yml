@@ -67,10 +67,14 @@ jobs:
 
     - name: Update version in pom.xml
       run: |
-        # Use sed to update version instead of maven plugin to avoid dependency issues
-        sed -i "s|<version>.*</version>|<version>${{ steps.version.outputs.version }}</version>|" pom.xml
-        echo "Updated version in pom.xml to ${{ steps.version.outputs.version }}"
-        grep -A 5 -B 5 "<version>" pom.xml | head -10
+        # Update only the project version (after <artifactId>crmbuild-service</artifactId>)
+        # This preserves the Spring Boot parent version
+        sed -i '/<artifactId>crmbuild-service<\/artifactId>/,/<\/version>/{s|<version>.*</version>|<version>${{ steps.version.outputs.version }}</version>|}' pom.xml
+        echo "Updated project version in pom.xml to ${{ steps.version.outputs.version }}"
+        
+        # Show the updated project section to verify
+        echo "Project version section:"
+        sed -n '/<artifactId>crmbuild-service/,/<\/description>/p' pom.xml
 
     - name: Run tests
       run: mvn test
