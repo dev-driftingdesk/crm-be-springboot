@@ -121,11 +121,14 @@
         </dependency>
 
         <!-- Azure Communication Services - Email -->
+        <!-- NOTE: Removed - Email now uses SMTP via Spring Mail instead of Azure Communication Services -->
+        <!--
         <dependency>
             <groupId>com.azure</groupId>
             <artifactId>azure-communication-email</artifactId>
             <version>1.1.0</version>
         </dependency>
+        -->
 
         <!-- Encryption -->
         <dependency>

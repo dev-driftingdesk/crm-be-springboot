@@ -25,7 +25,7 @@ public class MessageDispatchService {
     private final AgentCredentialRepository credentialRepository;
     private final EncryptionService encryptionService;
     private final MetaWhatsAppService metaWhatsAppService;
-    private final AzureEmailService azureEmailService;
+    private final SmtpEmailService smtpEmailService;
     private final TwilioSmsService twilioSmsService;
 
     @Value("${app.messaging.retry.initial-delay-minutes:5}")
@@ -86,7 +86,7 @@ public class MessageDispatchService {
 
         // Get agent's email credentials
         AgentCredential credential = credentialRepository.findActiveByAgentIdAndChannel(agentId, "EMAIL")
-                .orElseThrow(() -> new BadRequestException("No Azure email credentials found for agent"));
+                .orElseThrow(() -> new BadRequestException("No SMTP email credentials found for agent"));
 
         // Decrypt credentials
         Map<String, String> decryptedCredentials = encryptionService.decryptMap(credential.getEncryptedCredentials());
@@ -105,8 +105,8 @@ public class MessageDispatchService {
                 .build();
 
         try {
-            // Send via Azure Communication Services
-            String vendorMessageId = azureEmailService.sendEmail(recipientEmail, subject, messageBody, decryptedCredentials);
+            // Send via SMTP
+            String vendorMessageId = smtpEmailService.sendEmail(recipientEmail, subject, messageBody, decryptedCredentials);
 
             // Mark as sent
             message.setStatus(MessageStatus.SENT);

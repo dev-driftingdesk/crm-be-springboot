@@ -1,7 +1,7 @@
 package com.ceedpods.crmbuild.controller.messaging;
 
 import com.ceedpods.crmbuild.dto.messaging.MessageDTO;
-import com.ceedpods.crmbuild.dto.request.SaveAzureEmailCredentialRequest;
+import com.ceedpods.crmbuild.dto.request.SaveSmtpEmailCredentialRequest;
 import com.ceedpods.crmbuild.dto.request.SendEmailRequest;
 import com.ceedpods.crmbuild.dto.response.ApiResponse;
 import com.ceedpods.crmbuild.entity.messaging.AgentCredential;
@@ -36,21 +36,24 @@ public class EmailController {
     private final MessageMapper messageMapper;
 
     /**
-     * Save Azure Communication Services Email credentials
+     * Save SMTP Email credentials
      * POST /api/v1/email/credentials
      */
     @PostMapping("/credentials")
     @RequirePermission("COMMUNICATION_SEND_SMS")
     public ResponseEntity<ApiResponse<String>> saveCredentials(
-            @Valid @RequestBody SaveAzureEmailCredentialRequest request,
+            @Valid @RequestBody SaveSmtpEmailCredentialRequest request,
             Authentication authentication) {
         try {
             String agentId = getKeycloakId(authentication);
-            log.info("Agent {} saving Azure email credentials", agentId);
+            log.info("Agent {} saving SMTP email credentials", agentId);
 
             // Build credentials map
             Map<String, String> credentials = new HashMap<>();
-            credentials.put("connectionString", request.getConnectionString());
+            credentials.put("smtpHost", request.getSmtpHost());
+            credentials.put("smtpPort", request.getSmtpPort());
+            credentials.put("smtpUsername", request.getSmtpUsername());
+            credentials.put("smtpPassword", request.getSmtpPassword());
             credentials.put("senderAddress", request.getSenderAddress());
 
             // Encrypt credentials
@@ -70,7 +73,7 @@ public class EmailController {
             credentialRepository.save(credential);
 
             return ResponseEntity.status(HttpStatus.CREATED)
-                    .body(ApiResponse.success("Azure email credentials saved successfully", null));
+                    .body(ApiResponse.success("SMTP email credentials saved successfully", null));
 
         } catch (Exception e) {
             log.error("Error saving email credentials: {}", e.getMessage(), e);
@@ -80,7 +83,7 @@ public class EmailController {
     }
 
     /**
-     * Send email via Azure Communication Services
+     * Send email via SMTP
      * POST /api/v1/email/send
      */
     @PostMapping("/send")

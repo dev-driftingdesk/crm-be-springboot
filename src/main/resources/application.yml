@@ -83,11 +83,13 @@ meta:
   access-token: ${META_ACCESS_TOKEN:}
 
 # Azure Communication Services Configuration
-azure:
-  communication:
-    email:
-      connection-string: ${AZURE_COMMUNICATION_CONNECTION_STRING:}
-      sender-address: ${AZURE_EMAIL_SENDER_ADDRESS:}
+# NOTE: Deprecated - Email now uses SMTP instead of Azure Communication Services
+# Per-agent SMTP credentials are stored encrypted in the database
+# azure:
+#   communication:
+#     email:
+#       connection-string: ${AZURE_COMMUNICATION_CONNECTION_STRING:}
+#       sender-address: ${AZURE_EMAIL_SENDER_ADDRESS:}
 
 # Google Ads Configuration
 google:

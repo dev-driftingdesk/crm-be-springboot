@@ -24,7 +24,7 @@ public class MessageRetryService {
     private final AgentCredentialRepository credentialRepository;
     private final EncryptionService encryptionService;
     private final MetaWhatsAppService metaWhatsAppService;
-    private final AzureEmailService azureEmailService;
+    private final SmtpEmailService smtpEmailService;
     private final TwilioSmsService twilioSmsService;
 
     @Value("${app.messaging.retry.initial-delay-minutes:5}")
@@ -128,7 +128,7 @@ public class MessageRetryService {
                     message.getMessageBody(),
                     credentials
             );
-            case EMAIL -> azureEmailService.sendEmail(
+            case EMAIL -> smtpEmailService.sendEmail(
                     message.getRecipientEmail(),
                     message.getSubject(),
                     message.getMessageBody(),
