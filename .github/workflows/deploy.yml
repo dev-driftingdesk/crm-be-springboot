@@ -1,0 +1,279 @@
+name: Build and Deploy to Azure Container Apps
+
+on:
+  push:
+    branches: [ dev ]
+  pull_request:
+    branches: [ dev ]
+
+env:
+  REGISTRY_NAME: ceedpodsregister
+  REGISTRY_LOGIN_SERVER: ceedpodsregister.azurecr.io
+  IMAGE_NAME: ceedpodservice
+  RESOURCE_GROUP: keycloak-rg
+  CONTAINER_APP_NAME: ceedpodservice
+  CONTAINER_APP_ENV: ceedpods
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      image-tag: ${{ steps.version.outputs.image-tag }}
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0  # Fetch full history for proper versioning
+
+    - name: Set up JDK 17
+      uses: actions/setup-java@v4
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+
+    - name: Cache Maven packages
+      uses: actions/cache@v4
+      with:
+        path: ~/.m2
+        key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+        restore-keys: ${{ runner.os }}-m2
+
+    - name: Generate version
+      id: version
+      run: |
+        # Extract current version from pom.xml
+        CURRENT_VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
+        
+        # Generate semantic version based on branch and commit
+        if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+          # For PR builds, use PR number
+          VERSION="${CURRENT_VERSION}-pr${{ github.event.number }}.${GITHUB_RUN_NUMBER}"
+          IMAGE_TAG="pr-${{ github.event.number }}-${GITHUB_RUN_NUMBER}"
+        else
+          # For dev branch builds, use semantic versioning
+          COMMIT_COUNT=$(git rev-list --count HEAD)
+          SHORT_SHA=$(git rev-parse --short HEAD)
+          VERSION="${CURRENT_VERSION}-dev.${COMMIT_COUNT}.${SHORT_SHA}"
+          IMAGE_TAG="v${CURRENT_VERSION}-dev-${GITHUB_RUN_NUMBER}"
+        fi
+        
+        echo "version=${VERSION}" >> $GITHUB_OUTPUT
+        echo "image-tag=${IMAGE_TAG}" >> $GITHUB_OUTPUT
+        echo "Generated version: ${VERSION}"
+        echo "Generated image tag: ${IMAGE_TAG}"
+
+    - name: Update version in pom.xml
+      run: |
+        mvn versions:set -DnewVersion=${{ steps.version.outputs.version }}
+        mvn versions:commit
+
+    - name: Run tests
+      run: mvn test
+
+    - name: Build application
+      run: mvn clean package -DskipTests
+
+    - name: Log in to Azure Container Registry
+      uses: azure/docker-login@v1
+      with:
+        login-server: ${{ env.REGISTRY_LOGIN_SERVER }}
+        username: ${{ secrets.REGISTRY_USERNAME }}
+        password: ${{ secrets.REGISTRY_PASSWORD }}
+
+    - name: Build and push Docker image
+      run: |
+        # Build for linux/amd64 platform (Azure Container Apps requirement)
+        docker build --platform linux/amd64 \
+          -t ${{ env.REGISTRY_LOGIN_SERVER }}/${{ env.IMAGE_NAME }}:${{ steps.version.outputs.image-tag }} \
+          -t ${{ env.REGISTRY_LOGIN_SERVER }}/${{ env.IMAGE_NAME }}:latest \
+          .
+        
+        # Push both tags
+        docker push ${{ env.REGISTRY_LOGIN_SERVER }}/${{ env.IMAGE_NAME }}:${{ steps.version.outputs.image-tag }}
+        docker push ${{ env.REGISTRY_LOGIN_SERVER }}/${{ env.IMAGE_NAME }}:latest
+
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: maven-artifacts-${{ steps.version.outputs.image-tag }}
+        path: |
+          target/*.jar
+          Dockerfile
+        retention-days: 7
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/dev' && github.event_name == 'push'
+    environment: production
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Azure Login
+      uses: azure/login@v1
+      with:
+        creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+    - name: Deploy to Azure Container Apps
+      run: |
+        FULL_IMAGE_NAME="${{ env.REGISTRY_LOGIN_SERVER }}/${{ env.IMAGE_NAME }}:${{ needs.build.outputs.image-tag }}"
+        
+        echo "🚀 Deploying image: ${FULL_IMAGE_NAME}"
+        
+        # Check if container app exists
+        APP_EXISTS=$(az containerapp show \
+          --name ${{ env.CONTAINER_APP_NAME }} \
+          --resource-group ${{ env.RESOURCE_GROUP }} \
+          --query "properties.provisioningState" \
+          --output tsv 2>/dev/null || echo "NOT_FOUND")
+
+        if [ "$APP_EXISTS" = "NOT_FOUND" ]; then
+          echo "🏗️ Creating new container app"
+          
+          az containerapp create \
+            --name ${{ env.CONTAINER_APP_NAME }} \
+            --resource-group ${{ env.RESOURCE_GROUP }} \
+            --environment ${{ env.CONTAINER_APP_ENV }} \
+            --image ${FULL_IMAGE_NAME} \
+            --registry-server ${{ env.REGISTRY_LOGIN_SERVER }} \
+            --registry-username ${{ secrets.REGISTRY_USERNAME }} \
+            --registry-password ${{ secrets.REGISTRY_PASSWORD }} \
+            --cpu 1.0 \
+            --memory 2.0Gi \
+            --min-replicas 1 \
+            --max-replicas 3 \
+            --ingress external \
+            --target-port 8084 \
+            --env-vars \
+              "SPRING_PROFILES_ACTIVE=prod" \
+              "server.port=8084" \
+              "server.address=0.0.0.0" \
+              "APP_URL=${{ secrets.APP_URL }}" \
+              "MONGODB_URI=secretref:mongodb-uri" \
+              "KEYCLOAK_SERVER_URL=${{ secrets.KEYCLOAK_SERVER_URL }}" \
+              "KEYCLOAK_REALM_NAME=${{ secrets.KEYCLOAK_REALM_NAME }}" \
+              "KEYCLOAK_CLIENT_ID=${{ secrets.KEYCLOAK_CLIENT_ID }}" \
+              "KEYCLOAK_CLIENT_SECRET=secretref:keycloak-client-secret" \
+              "KEYCLOAK_ADMIN_USERNAME=secretref:keycloak-admin-username" \
+              "KEYCLOAK_ADMIN_PASSWORD=secretref:keycloak-admin-password" \
+            --secrets \
+              "mongodb-uri=${{ secrets.MONGODB_URI }}" \
+              "keycloak-client-secret=${{ secrets.KEYCLOAK_CLIENT_SECRET }}" \
+              "keycloak-admin-username=${{ secrets.KEYCLOAK_ADMIN_USERNAME }}" \
+              "keycloak-admin-password=${{ secrets.KEYCLOAK_ADMIN_PASSWORD }}"
+        else
+          echo "🔄 Updating existing container app"
+          
+          # Update secrets first
+          az containerapp secret set \
+            --name ${{ env.CONTAINER_APP_NAME }} \
+            --resource-group ${{ env.RESOURCE_GROUP }} \
+            --secrets \
+              "mongodb-uri=${{ secrets.MONGODB_URI }}" \
+              "keycloak-client-secret=${{ secrets.KEYCLOAK_CLIENT_SECRET }}" \
+              "keycloak-admin-username=${{ secrets.KEYCLOAK_ADMIN_USERNAME }}" \
+              "keycloak-admin-password=${{ secrets.KEYCLOAK_ADMIN_PASSWORD }}"
+          
+          # Update container app
+          az containerapp update \
+            --name ${{ env.CONTAINER_APP_NAME }} \
+            --resource-group ${{ env.RESOURCE_GROUP }} \
+            --image ${FULL_IMAGE_NAME} \
+            --cpu 1.0 \
+            --memory 2.0Gi \
+            --min-replicas 1 \
+            --max-replicas 3 \
+            --set-env-vars \
+              "SPRING_PROFILES_ACTIVE=prod" \
+              "server.port=8084" \
+              "server.address=0.0.0.0" \
+              "APP_URL=${{ secrets.APP_URL }}" \
+              "MONGODB_URI=secretref:mongodb-uri" \
+              "KEYCLOAK_SERVER_URL=${{ secrets.KEYCLOAK_SERVER_URL }}" \
+              "KEYCLOAK_REALM_NAME=${{ secrets.KEYCLOAK_REALM_NAME }}" \
+              "KEYCLOAK_CLIENT_ID=${{ secrets.KEYCLOAK_CLIENT_ID }}" \
+              "KEYCLOAK_CLIENT_SECRET=secretref:keycloak-client-secret" \
+              "KEYCLOAK_ADMIN_USERNAME=secretref:keycloak-admin-username" \
+              "KEYCLOAK_ADMIN_PASSWORD=secretref:keycloak-admin-password"
+        fi
+
+    - name: Get application URL
+      id: get-url
+      run: |
+        FQDN=$(az containerapp show \
+          --name ${{ env.CONTAINER_APP_NAME }} \
+          --resource-group ${{ env.RESOURCE_GROUP }} \
+          --query properties.configuration.ingress.fqdn \
+          --output tsv)
+        echo "fqdn=${FQDN}" >> $GITHUB_OUTPUT
+        echo "🌐 Application URL: https://${FQDN}"
+
+    - name: Health check
+      run: |
+        echo "⏳ Waiting for deployment to be ready..."
+        sleep 30
+        
+        HEALTH_URL="https://${{ steps.get-url.outputs.fqdn }}/api/v1/actuator/health"
+        echo "🔍 Checking health at: ${HEALTH_URL}"
+        
+        # Retry health check up to 10 times with 30 second intervals
+        for i in {1..10}; do
+          if curl -f "${HEALTH_URL}" --max-time 10; then
+            echo "✅ Health check passed!"
+            break
+          else
+            echo "⏳ Health check failed, attempt $i/10. Retrying in 30 seconds..."
+            sleep 30
+          fi
+          
+          if [ $i -eq 10 ]; then
+            echo "❌ Health check failed after 10 attempts"
+            exit 1
+          fi
+        done
+
+    - name: Create GitHub release
+      if: github.ref == 'refs/heads/dev'
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ needs.build.outputs.image-tag }}
+        release_name: Release ${{ needs.build.outputs.image-tag }}
+        body: |
+          ## CeedPods Service Release ${{ needs.build.outputs.image-tag }}
+          
+          ### Changes
+          - Auto-deployment from dev branch
+          - Version: ${{ needs.build.outputs.version }}
+          - Commit: ${{ github.sha }}
+          
+          ### Deployment
+          - 🌐 Application URL: https://${{ steps.get-url.outputs.fqdn }}
+          - 🔗 API Base URL: https://${{ steps.get-url.outputs.fqdn }}/api/v1
+          - ❤️ Health Check: https://${{ steps.get-url.outputs.fqdn }}/api/v1/actuator/health
+          
+          ### Docker Image
+          - 📦 Image: `${{ env.REGISTRY_LOGIN_SERVER }}/${{ env.IMAGE_NAME }}:${{ needs.build.outputs.image-tag }}`
+        draft: false
+        prerelease: false
+
+    - name: Deployment summary
+      run: |
+        echo "🎉 Deployment completed successfully!"
+        echo ""
+        echo "📊 Deployment Summary:"
+        echo "├── Version: ${{ needs.build.outputs.version }}"
+        echo "├── Image Tag: ${{ needs.build.outputs.image-tag }}"
+        echo "├── Application URL: https://${{ steps.get-url.outputs.fqdn }}"
+        echo "├── API Base URL: https://${{ steps.get-url.outputs.fqdn }}/api/v1"
+        echo "└── Health Check: https://${{ steps.get-url.outputs.fqdn }}/api/v1/actuator/health"
+        echo ""
+        echo "🔧 Monitoring Commands:"
+        echo "├── Check logs: az containerapp logs show --name ${{ env.CONTAINER_APP_NAME }} --resource-group ${{ env.RESOURCE_GROUP }}"
+        echo "└── View metrics: az containerapp show --name ${{ env.CONTAINER_APP_NAME }} --resource-group ${{ env.RESOURCE_GROUP }}"
