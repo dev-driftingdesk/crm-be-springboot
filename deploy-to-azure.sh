@@ -12,7 +12,7 @@ CONTAINER_APP_NAME="ceedpodservice"
 CONTAINER_APP_ENV="ceedpods"
 ACR_NAME="ceedpodsregister"
 IMAGE_NAME="ceedpodservice"
-IMAGE_TAG="v1.0.10"
+IMAGE_TAG="v1.1.2"
 
 echo "🚀 Starting deployment of CeedPods Service to Azure Container Apps..."
 

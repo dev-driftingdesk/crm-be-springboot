@@ -101,7 +101,8 @@ public final class AppConstants {
         public static final String[] ALLOWED_ORIGINS = {
             "http://localhost:3000",
             "http://localhost:3030",
-            "http://localhost:4200"
+            "http://localhost:4200",
+                "https://black-glacier-015cd510f.3.azurestaticapps.net"
         };
 
         public static final String[] ALLOWED_METHODS = {

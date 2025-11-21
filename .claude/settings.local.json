@@ -14,7 +14,8 @@
       "Bash(./mvnw:*)",
       "Bash(mvn clean:*)",
       "Bash(sed:*)",
-      "Bash(curl:*)"
+      "Bash(curl:*)",
+      "Bash(git add:*)"
     ],
     "deny": [],
     "ask": []
