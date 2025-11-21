@@ -8,6 +8,7 @@ import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface MessageRepository extends MongoRepository<Message, String> {
@@ -35,4 +36,28 @@ public interface MessageRepository extends MongoRepository<Message, String> {
      */
     @Query("{ 'agentId': ?0, 'status': 'FAILED', 'deleted': false }")
     List<Message> findFailedMessagesByAgentId(String agentId);
+
+    /**
+     * Find message by Twilio Call SID
+     */
+    @Query("{ 'callSid': ?0, 'deleted': false }")
+    Optional<Message> findByCallSid(String callSid);
+
+    /**
+     * Find message by caller Call SID
+     */
+    @Query("{ 'callerCallSid': ?0, 'deleted': false }")
+    Optional<Message> findByCallerCallSid(String callerCallSid);
+
+    /**
+     * Find message by recipient Call SID
+     */
+    @Query("{ 'recipientCallSid': ?0, 'deleted': false }")
+    Optional<Message> findByRecipientCallSid(String recipientCallSid);
+
+    /**
+     * Find message by Recording SID
+     */
+    @Query("{ 'recordingSid': ?0, 'deleted': false }")
+    Optional<Message> findByRecordingSid(String recordingSid);
 }

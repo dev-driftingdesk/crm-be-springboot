@@ -42,6 +42,31 @@ public class Message extends BaseEntity {
     private String subject; // Email subject (null for WhatsApp)
     private String messageBody; // Message text
 
+    // Voice call specific fields - Conference-based two-way calls
+    private String conferenceName; // Unique conference room identifier
+    private String callerCallSid; // Twilio Call SID for caller (User A)
+    private String recipientCallSid; // Twilio Call SID for recipient (User B)
+    private String callerUserId; // Keycloak ID of the caller
+    private String recipientUserId; // Keycloak ID of the recipient
+    private String callerPhone; // Phone number of caller
+    private String conferenceStatus; // Conference status (initiated, in-progress, completed)
+    private String recordingUrl; // URL to call recording if enabled
+    private String recordingSid; // Twilio Recording SID
+    private Long callDuration; // Duration of call in seconds
+    private LocalDateTime callStartedAt; // When call actually started
+    private LocalDateTime callEndedAt; // When call ended
+
+    // Transcription fields
+    private String transcriptionText; // Full transcript text
+    private String transcriptionSid; // Twilio Transcription SID
+    private String transcriptionStatus; // in-progress, completed, failed
+    private String transcriptionUrl; // URL to transcript JSON from Twilio
+    private LocalDateTime transcriptionCompletedAt; // When transcription finished
+
+    // Legacy field for backward compatibility
+    private String callSid; // Primary call SID (usually caller's)
+    private String callStatus; // Call status
+
     // Vendor tracking
     private String vendorMessageId; // Vendor-specific message ID
     private LocalDateTime sentAt;

@@ -1,0 +1,17 @@
+# Local Development Configuration
+# Activate with: --spring.profiles.active=local
+# Or: mvnw spring-boot:run -Dspring-boot.run.profiles=local
+
+# ngrok URL Configuration
+# OPTION 1: Use environment variable (recommended)
+#   export APP_URL=https://your-ngrok-url.ngrok-free.app
+# OPTION 2: Update the default value below with your ngrok URL
+app:
+  url: ${APP_URL:https://amusingly-zanier-anglea.ngrok-free.app}
+
+# Local development logging - more verbose for debugging
+logging:
+  level:
+    com.ceedpods.crmbuild: DEBUG
+    org.springframework.security: DEBUG
+    org.springframework.web: DEBUG

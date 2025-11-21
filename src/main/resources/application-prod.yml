@@ -93,6 +93,8 @@ deepgram:
   api-key: ${DEEPGRAM_API_KEY:}
 
 # Application Configuration - Production
+# Set APP_URL environment variable to your production domain
+# Example: export APP_URL=https://api.yourcompany.com
 app:
   url: ${APP_URL}
   email:
