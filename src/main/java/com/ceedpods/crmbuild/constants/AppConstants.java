@@ -84,12 +84,17 @@ public final class AppConstants {
             "/auth/forgot-password",
             "/auth/verify-reset-code",
             "/auth/reset-password",
-            "/invitations/complete"
+            "/invitations/complete",
+            "/voice/webhook/status",  // Twilio voice call status webhook
+            "/voice/webhook/conference-status",  // Twilio conference status webhook
+            "/voice/webhook/recording-status",  // Twilio recording status webhook
+            "/voice/webhook/transcription"  // Twilio transcription webhook
         };
 
         public static final String[] PUBLIC_GET_ENDPOINTS = {
             "/actuator/**",
-            "/invitations/validate/*"
+            "/invitations/validate/*",
+            "/voice/twiml/join-conference"  // TwiML endpoint for joining conference
         };
 
         // CORS settings

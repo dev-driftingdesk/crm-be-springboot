@@ -26,6 +26,7 @@ public class MessageRetryService {
     private final MetaWhatsAppService metaWhatsAppService;
     private final SmtpEmailService smtpEmailService;
     private final TwilioSmsService twilioSmsService;
+    private final TwilioVoiceService twilioVoiceService;
 
     @Value("${app.messaging.retry.initial-delay-minutes:5}")
     private int initialDelayMinutes;
@@ -139,6 +140,38 @@ public class MessageRetryService {
                     message.getMessageBody(),
                     credentials
             );
+            case VOICE -> {
+                // For voice conference calls, reinitiate the conference
+                String conferenceName = message.getConferenceName();
+                if (conferenceName == null || conferenceName.isEmpty()) {
+                    throw new Exception("Conference name is missing for voice call retry");
+                }
+
+                // Retry calling both users to the same conference
+                String callerCallSid = twilioVoiceService.initiateConferenceCall(
+                        message.getCallerPhone(),
+                        conferenceName,
+                        credentials,
+                        false,  // No recording on retry
+                        null    // No status callback on retry
+                );
+
+                message.setCallerCallSid(callerCallSid);
+                message.setCallSid(callerCallSid);
+
+                String recipientCallSid = twilioVoiceService.initiateConferenceCall(
+                        message.getRecipientPhone(),
+                        conferenceName,
+                        credentials,
+                        false,
+                        null
+                );
+
+                message.setRecipientCallSid(recipientCallSid);
+                message.setConferenceStatus("initiated");
+
+                yield conferenceName;
+            }
         };
     }
 

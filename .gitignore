@@ -39,6 +39,10 @@ build/
 .env.test.local
 .env.production.local
 
+### Local Development Configuration ###
+# Note: application-local.yml is committed with default ngrok URL
+# Update it locally with your own ngrok URL
+
 ### Logs ###
 logs/
 *.log
