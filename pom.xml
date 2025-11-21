@@ -10,7 +10,7 @@
     </parent>
     <groupId>com.ceedpods</groupId>
     <artifactId>crmbuild-service</artifactId>
-    <version>1.1.0</version>
+    <version>1.1.1</version>
     <name>CRMBuild Service</name>
     <description>Backend service for CRMBuild - Agentic CRM Platform</description>
     <properties>
