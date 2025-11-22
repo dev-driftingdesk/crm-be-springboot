@@ -1,6 +1,6 @@
 package com.ceedpods.crmbuild.repository;
 
-import com.ceedpods.crmbuild.entity.note.Note;
+import com.ceedpods.crmbuild.entity.dealnote.DealNote;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.mongodb.repository.MongoRepository;
@@ -10,45 +10,45 @@ import org.springframework.stereotype.Repository;
 import java.util.List;
 
 /**
- * Repository interface for Note entity
+ * Repository interface for DealNote entity
  */
 @Repository
-public interface NoteRepository extends MongoRepository<Note, String> {
+public interface DealNoteRepository extends MongoRepository<DealNote, String> {
 
     /**
-     * Find all non-deleted notes
+     * Find all non-deleted deal notes
      */
     @Query("{ 'deleted': false }")
-    List<Note> findByDeletedFalse();
+    List<DealNote> findByDeletedFalse();
 
     /**
-     * Find all non-deleted notes for a specific deal
+     * Find all non-deleted deal notes for a specific deal
      */
     @Query("{ 'dealId': ?0, 'deleted': false }")
-    List<Note> findByDealIdAndDeletedFalse(String dealId);
+    List<DealNote> findByDealIdAndDeletedFalse(String dealId);
 
     /**
-     * Count all non-deleted notes
+     * Count all non-deleted deal notes
      */
     long countByDeletedFalse();
 
     /**
-     * Count all non-deleted notes for a specific deal
+     * Count all non-deleted deal notes for a specific deal
      */
     @Query(value = "{ 'dealId': ?0, 'deleted': false }", count = true)
     long countByDealIdAndDeletedFalse(String dealId);
 
     /**
-     * Search notes by keyword (searches in note title and content)
+     * Search deal notes by keyword (searches in note title and content)
      */
     @Query("{ '$or': [ " +
            "{ 'noteTitle': { '$regex': ?0, '$options': 'i' } }, " +
            "{ 'noteContent': { '$regex': ?0, '$options': 'i' } } " +
            "], 'deleted': false }")
-    List<Note> searchNotes(String searchTerm);
+    List<DealNote> searchDealNotes(String searchTerm);
 
     /**
-     * Search notes by keyword for a specific deal
+     * Search deal notes by keyword for a specific deal
      */
     @Query("{ '$and': [ " +
            "{ 'dealId': ?0 }, " +
@@ -58,33 +58,33 @@ public interface NoteRepository extends MongoRepository<Note, String> {
            "] }, " +
            "{ 'deleted': false } " +
            "]}")
-    List<Note> searchNotesByDealId(String dealId, String searchTerm);
+    List<DealNote> searchDealNotesByDealId(String dealId, String searchTerm);
 
     // ==================== PAGINATED METHODS ====================
 
     /**
-     * Find all non-deleted notes with pagination
+     * Find all non-deleted deal notes with pagination
      */
     @Query("{ 'deleted': false }")
-    Page<Note> findByDeletedFalse(Pageable pageable);
+    Page<DealNote> findByDeletedFalse(Pageable pageable);
 
     /**
-     * Find all non-deleted notes for a specific deal with pagination
+     * Find all non-deleted deal notes for a specific deal with pagination
      */
     @Query("{ 'dealId': ?0, 'deleted': false }")
-    Page<Note> findByDealIdAndDeletedFalse(String dealId, Pageable pageable);
+    Page<DealNote> findByDealIdAndDeletedFalse(String dealId, Pageable pageable);
 
     /**
-     * Search notes by keyword with pagination
+     * Search deal notes by keyword with pagination
      */
     @Query("{ '$or': [ " +
            "{ 'noteTitle': { '$regex': ?0, '$options': 'i' } }, " +
            "{ 'noteContent': { '$regex': ?0, '$options': 'i' } } " +
            "], 'deleted': false }")
-    Page<Note> searchNotes(String searchTerm, Pageable pageable);
+    Page<DealNote> searchDealNotes(String searchTerm, Pageable pageable);
 
     /**
-     * Search notes by keyword for a specific deal with pagination
+     * Search deal notes by keyword for a specific deal with pagination
      */
     @Query("{ '$and': [ " +
            "{ 'dealId': ?0 }, " +
@@ -94,7 +94,7 @@ public interface NoteRepository extends MongoRepository<Note, String> {
            "] }, " +
            "{ 'deleted': false } " +
            "]}")
-    Page<Note> searchNotesByDealId(String dealId, String searchTerm, Pageable pageable);
+    Page<DealNote> searchDealNotesByDealId(String dealId, String searchTerm, Pageable pageable);
 
     /**
      * Count search results for pagination

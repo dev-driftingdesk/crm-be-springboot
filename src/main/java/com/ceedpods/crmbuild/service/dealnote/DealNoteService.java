@@ -1,15 +1,15 @@
-package com.ceedpods.crmbuild.service.note;
+package com.ceedpods.crmbuild.service.dealnote;
 
-import com.ceedpods.crmbuild.dto.note.NoteDTO;
-import com.ceedpods.crmbuild.dto.request.CreateNoteRequest;
-import com.ceedpods.crmbuild.dto.request.UpdateNoteRequest;
+import com.ceedpods.crmbuild.dto.dealnote.DealNoteDTO;
+import com.ceedpods.crmbuild.dto.request.CreateDealNoteRequest;
+import com.ceedpods.crmbuild.dto.request.UpdateDealNoteRequest;
 import com.ceedpods.crmbuild.dto.response.PaginatedResponse;
-import com.ceedpods.crmbuild.entity.note.Note;
+import com.ceedpods.crmbuild.entity.dealnote.DealNote;
 import com.ceedpods.crmbuild.exception.BadRequestException;
 import com.ceedpods.crmbuild.exception.ResourceNotFoundException;
-import com.ceedpods.crmbuild.mapper.NoteMapper;
+import com.ceedpods.crmbuild.mapper.DealNoteMapper;
 import com.ceedpods.crmbuild.repository.DealRepository;
-import com.ceedpods.crmbuild.repository.NoteRepository;
+import com.ceedpods.crmbuild.repository.DealNoteRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -23,16 +23,16 @@ import java.util.List;
 import java.util.UUID;
 
 /**
- * Service layer for Note management
+ * Service layer for DealNote management
  */
 @Service
 @RequiredArgsConstructor
 @Slf4j
-public class NoteService {
+public class DealNoteService {
 
-    private final NoteRepository noteRepository;
+    private final DealNoteRepository dealNoteRepository;
     private final DealRepository dealRepository;
-    private final NoteMapper noteMapper;
+    private final DealNoteMapper dealNoteMapper;
 
     // Pagination constants (following project convention)
     private static final int DEFAULT_PAGE = 0;
@@ -47,14 +47,14 @@ public class NoteService {
      * @return Created note DTO
      */
     @Transactional
-    public NoteDTO createNote(CreateNoteRequest request, Authentication authentication) {
+    public DealNoteDTO createDealNote(CreateDealNoteRequest request, Authentication authentication) {
         log.info("Creating new note for deal ID: {}", request.getDealId());
 
         // Validate that the deal exists
         validateDealExists(request.getDealId());
 
         // Create note entity
-        Note note = Note.builder()
+        DealNote dealNote = DealNote.builder()
                 .id(UUID.randomUUID().toString())
                 .dealId(request.getDealId())
                 .noteTitle(request.getNoteTitle())
@@ -62,13 +62,13 @@ public class NoteService {
                 .build();
 
         // Spring Data Auditing will automatically set createdBy, updatedBy, createdAt, updatedAt
-        note.setDeleted(false);
+        dealNote.setDeleted(false);
 
         // Save note
-        Note savedNote = noteRepository.save(note);
-        log.info("Note created successfully with ID: {}", savedNote.getId());
+        DealNote savedDealNote = dealNoteRepository.save(dealNote);
+        log.info("Deal note created successfully with ID: {}", savedDealNote.getId());
 
-        return noteMapper.toDTO(savedNote);
+        return dealNoteMapper.toDTO(savedDealNote);
     }
 
     /**
@@ -77,125 +77,125 @@ public class NoteService {
      * @param dealId Deal ID to get notes for
      * @return List of note DTOs
      */
-    public List<NoteDTO> getNotesByDealId(String dealId) {
+    public List<DealNoteDTO> getDealNotesByDealId(String dealId) {
         log.info("Fetching all notes for deal ID: {}", dealId);
 
         // Validate that the deal exists
         validateDealExists(dealId);
 
-        List<Note> notes = noteRepository.findByDealIdAndDeletedFalse(dealId);
-        log.info("Found {} notes for deal ID: {}", notes.size(), dealId);
+        List<DealNote> dealNotes = dealNoteRepository.findByDealIdAndDeletedFalse(dealId);
+        log.info("Found {} notes for deal ID: {}", dealNotes.size(), dealId);
 
-        return noteMapper.toDTO(notes);
+        return dealNoteMapper.toDTO(dealNotes);
     }
 
     /**
      * Get a specific note by ID
      *
-     * @param id Note ID
+     * @param id Deal Note ID
      * @return Note DTO
      */
-    public NoteDTO getNoteById(String id) {
-        log.info("Fetching note with ID: {}", id);
+    public DealNoteDTO getDealNoteById(String id) {
+        log.info("Fetching deal note with ID: {}", id);
 
-        Note note = noteRepository.findById(id)
+        DealNote dealNote = dealNoteRepository.findById(id)
                 .filter(n -> !n.isDeleted())
-                .orElseThrow(() -> new ResourceNotFoundException("Note not found with ID: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Deal note not found with ID: " + id));
 
-        return noteMapper.toDTO(note);
+        return dealNoteMapper.toDTO(dealNote);
     }
 
     /**
-     * Update an existing note
+     * Update an existing deal note
      *
-     * @param id Note ID
+     * @param id Deal Note ID
      * @param request Request containing updated note details
      * @param authentication Current user authentication
      * @return Updated note DTO
      */
     @Transactional
-    public NoteDTO updateNote(String id, UpdateNoteRequest request, Authentication authentication) {
-        log.info("Updating note with ID: {}", id);
+    public DealNoteDTO updateDealNote(String id, UpdateDealNoteRequest request, Authentication authentication) {
+        log.info("Updating deal note with ID: {}", id);
 
         // Find existing note
-        Note note = noteRepository.findById(id)
+        DealNote dealNote = dealNoteRepository.findById(id)
                 .filter(n -> !n.isDeleted())
-                .orElseThrow(() -> new ResourceNotFoundException("Note not found with ID: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Deal note not found with ID: " + id));
 
         // Update fields if provided
         if (request.getNoteTitle() != null) {
-            note.setNoteTitle(request.getNoteTitle());
+            dealNote.setNoteTitle(request.getNoteTitle());
         }
 
         if (request.getNoteContent() != null) {
-            note.setNoteContent(request.getNoteContent());
+            dealNote.setNoteContent(request.getNoteContent());
         }
 
         // Spring Data Auditing will automatically update updatedBy and updatedAt
-        Note updatedNote = noteRepository.save(note);
-        log.info("Note updated successfully with ID: {}", updatedNote.getId());
+        DealNote updatedDealNote = dealNoteRepository.save(dealNote);
+        log.info("Deal note updated successfully with ID: {}", updatedDealNote.getId());
 
-        return noteMapper.toDTO(updatedNote);
+        return dealNoteMapper.toDTO(updatedDealNote);
     }
 
     /**
-     * Delete a note (hard delete)
+     * Delete a deal note (hard delete)
      *
-     * @param id Note ID
+     * @param id Deal Note ID
      * @param authentication Current user authentication
      */
     @Transactional
-    public void deleteNote(String id, Authentication authentication) {
-        log.info("Deleting note with ID: {}", id);
+    public void deleteDealNote(String id, Authentication authentication) {
+        log.info("Deleting deal note with ID: {}", id);
 
         // Find existing note
-        Note note = noteRepository.findById(id)
+        DealNote dealNote = dealNoteRepository.findById(id)
                 .filter(n -> !n.isDeleted())
-                .orElseThrow(() -> new ResourceNotFoundException("Note not found with ID: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Deal note not found with ID: " + id));
 
         // Hard delete the note
-        noteRepository.delete(note);
-        log.info("Note deleted successfully with ID: {}", id);
+        dealNoteRepository.delete(dealNote);
+        log.info("Deal note deleted successfully with ID: {}", id);
     }
 
     /**
-     * Get all notes (for admin purposes)
+     * Get all deal notes (for admin purposes)
      *
      * @return List of all note DTOs
      */
-    public List<NoteDTO> getAllNotes() {
-        log.info("Fetching all notes");
-        List<Note> notes = noteRepository.findByDeletedFalse();
-        return noteMapper.toDTO(notes);
+    public List<DealNoteDTO> getAllDealNotes() {
+        log.info("Fetching all deal notes");
+        List<DealNote> dealNotes = dealNoteRepository.findByDeletedFalse();
+        return dealNoteMapper.toDTO(dealNotes);
     }
 
     /**
-     * Search notes by keyword
+     * Search deal notes by keyword
      *
      * @param searchTerm Search term
      * @return List of matching note DTOs
      */
-    public List<NoteDTO> searchNotes(String searchTerm) {
-        log.info("Searching notes with term: {}", searchTerm);
+    public List<DealNoteDTO> searchDealNotes(String searchTerm) {
+        log.info("Searching deal notes with term: {}", searchTerm);
 
         if (searchTerm == null || searchTerm.trim().isEmpty()) {
             throw new BadRequestException("Search term cannot be empty");
         }
 
-        List<Note> notes = noteRepository.searchNotes(searchTerm);
-        log.info("Found {} notes matching search term: {}", notes.size(), searchTerm);
+        List<DealNote> dealNotes = dealNoteRepository.searchDealNotes(searchTerm);
+        log.info("Found {} deal notes matching search term: {}", dealNotes.size(), searchTerm);
 
-        return noteMapper.toDTO(notes);
+        return dealNoteMapper.toDTO(dealNotes);
     }
 
     /**
-     * Search notes by keyword for a specific deal
+     * Search deal notes by keyword for a specific deal
      *
      * @param dealId Deal ID
      * @param searchTerm Search term
      * @return List of matching note DTOs
      */
-    public List<NoteDTO> searchNotesByDealId(String dealId, String searchTerm) {
+    public List<DealNoteDTO> searchDealNotesByDealId(String dealId, String searchTerm) {
         log.info("Searching notes for deal ID: {} with term: {}", dealId, searchTerm);
 
         // Validate that the deal exists
@@ -205,19 +205,19 @@ public class NoteService {
             throw new BadRequestException("Search term cannot be empty");
         }
 
-        List<Note> notes = noteRepository.searchNotesByDealId(dealId, searchTerm);
-        log.info("Found {} notes for deal ID: {} matching search term: {}", notes.size(), dealId, searchTerm);
+        List<DealNote> dealNotes = dealNoteRepository.searchDealNotesByDealId(dealId, searchTerm);
+        log.info("Found {} notes for deal ID: {} matching search term: {}", dealNotes.size(), dealId, searchTerm);
 
-        return noteMapper.toDTO(notes);
+        return dealNoteMapper.toDTO(dealNotes);
     }
 
     /**
-     * Get total note count
+     * Get total deal note count
      *
      * @return Total note count
      */
-    public long getTotalNoteCount() {
-        return noteRepository.countByDeletedFalse();
+    public long getTotalDealNoteCount() {
+        return dealNoteRepository.countByDeletedFalse();
     }
 
     /**
@@ -226,24 +226,24 @@ public class NoteService {
      * @param dealId Deal ID
      * @return Note count for the deal
      */
-    public long getNoteCountByDealId(String dealId) {
+    public long getDealNoteCountByDealId(String dealId) {
         // Validate that the deal exists
         validateDealExists(dealId);
 
-        return noteRepository.countByDealIdAndDeletedFalse(dealId);
+        return dealNoteRepository.countByDealIdAndDeletedFalse(dealId);
     }
 
     // ==================== PAGINATED METHODS ====================
 
     /**
-     * Get all notes with pagination
+     * Get all deal notes with pagination
      *
      * @param page Page number (0-indexed)
      * @param size Page size
      * @return Paginated response with note DTOs
      */
-    public PaginatedResponse<NoteDTO> getAllNotesPaginated(Integer page, Integer size) {
-        log.info("Fetching all notes with pagination - page: {}, size: {}", page, size);
+    public PaginatedResponse<DealNoteDTO> getAllDealNotesPaginated(Integer page, Integer size) {
+        log.info("Fetching all deal notes with pagination - page: {}, size: {}", page, size);
 
         // Validate and set pagination parameters
         int pageNumber = (page != null && page >= 0) ? page : DEFAULT_PAGE;
@@ -253,22 +253,22 @@ public class NoteService {
         Pageable pageable = PageRequest.of(pageNumber, pageSize);
 
         // Fetch paginated notes
-        Page<Note> notePage = noteRepository.findByDeletedFalse(pageable);
+        Page<DealNote> dealNotePage = dealNoteRepository.findByDeletedFalse(pageable);
 
         // Convert to DTOs
-        List<NoteDTO> noteDTOs = noteMapper.toDTO(notePage.getContent());
+        List<DealNoteDTO> dealNoteDTOs = dealNoteMapper.toDTO(dealNotePage.getContent());
 
-        log.info("Found {} notes on page {} of {}", noteDTOs.size(), pageNumber, notePage.getTotalPages());
+        log.info("Found {} deal notes on page {} of {}", dealNoteDTOs.size(), pageNumber, dealNotePage.getTotalPages());
 
         // Build paginated response
         return PaginatedResponse.of(
-                noteDTOs,
-                notePage.getTotalElements(),
-                notePage.getTotalPages(),
+                dealNoteDTOs,
+                dealNotePage.getTotalElements(),
+                dealNotePage.getTotalPages(),
                 pageNumber,
                 pageSize,
-                notePage.hasNext(),
-                notePage.hasPrevious()
+                dealNotePage.hasNext(),
+                dealNotePage.hasPrevious()
         );
     }
 
@@ -280,7 +280,7 @@ public class NoteService {
      * @param size Page size
      * @return Paginated response with note DTOs
      */
-    public PaginatedResponse<NoteDTO> getNotesByDealIdPaginated(String dealId, Integer page, Integer size) {
+    public PaginatedResponse<DealNoteDTO> getDealNotesByDealIdPaginated(String dealId, Integer page, Integer size) {
         log.info("Fetching notes for deal ID: {} with pagination - page: {}, size: {}", dealId, page, size);
 
         // Validate that the deal exists
@@ -294,36 +294,36 @@ public class NoteService {
         Pageable pageable = PageRequest.of(pageNumber, pageSize);
 
         // Fetch paginated notes for the deal
-        Page<Note> notePage = noteRepository.findByDealIdAndDeletedFalse(dealId, pageable);
+        Page<DealNote> dealNotePage = dealNoteRepository.findByDealIdAndDeletedFalse(dealId, pageable);
 
         // Convert to DTOs
-        List<NoteDTO> noteDTOs = noteMapper.toDTO(notePage.getContent());
+        List<DealNoteDTO> dealNoteDTOs = dealNoteMapper.toDTO(dealNotePage.getContent());
 
         log.info("Found {} notes for deal ID: {} on page {} of {}",
-                 noteDTOs.size(), dealId, pageNumber, notePage.getTotalPages());
+                 dealNoteDTOs.size(), dealId, pageNumber, dealNotePage.getTotalPages());
 
         // Build paginated response
         return PaginatedResponse.of(
-                noteDTOs,
-                notePage.getTotalElements(),
-                notePage.getTotalPages(),
+                dealNoteDTOs,
+                dealNotePage.getTotalElements(),
+                dealNotePage.getTotalPages(),
                 pageNumber,
                 pageSize,
-                notePage.hasNext(),
-                notePage.hasPrevious()
+                dealNotePage.hasNext(),
+                dealNotePage.hasPrevious()
         );
     }
 
     /**
-     * Search notes by keyword with pagination
+     * Search deal notes by keyword with pagination
      *
      * @param searchTerm Search term
      * @param page Page number (0-indexed)
      * @param size Page size
      * @return Paginated response with matching note DTOs
      */
-    public PaginatedResponse<NoteDTO> searchNotesPaginated(String searchTerm, Integer page, Integer size) {
-        log.info("Searching notes with term: {} - page: {}, size: {}", searchTerm, page, size);
+    public PaginatedResponse<DealNoteDTO> searchDealNotesPaginated(String searchTerm, Integer page, Integer size) {
+        log.info("Searching deal notes with term: {} - page: {}, size: {}", searchTerm, page, size);
 
         if (searchTerm == null || searchTerm.trim().isEmpty()) {
             throw new BadRequestException("Search term cannot be empty");
@@ -337,28 +337,28 @@ public class NoteService {
         Pageable pageable = PageRequest.of(pageNumber, pageSize);
 
         // Search notes with pagination
-        Page<Note> notePage = noteRepository.searchNotes(searchTerm, pageable);
+        Page<DealNote> dealNotePage = dealNoteRepository.searchDealNotes(searchTerm, pageable);
 
         // Convert to DTOs
-        List<NoteDTO> noteDTOs = noteMapper.toDTO(notePage.getContent());
+        List<DealNoteDTO> dealNoteDTOs = dealNoteMapper.toDTO(dealNotePage.getContent());
 
-        log.info("Found {} notes matching search term: {} on page {} of {}",
-                 noteDTOs.size(), searchTerm, pageNumber, notePage.getTotalPages());
+        log.info("Found {} deal notes matching search term: {} on page {} of {}",
+                 dealNoteDTOs.size(), searchTerm, pageNumber, dealNotePage.getTotalPages());
 
         // Build paginated response
         return PaginatedResponse.of(
-                noteDTOs,
-                notePage.getTotalElements(),
-                notePage.getTotalPages(),
+                dealNoteDTOs,
+                dealNotePage.getTotalElements(),
+                dealNotePage.getTotalPages(),
                 pageNumber,
                 pageSize,
-                notePage.hasNext(),
-                notePage.hasPrevious()
+                dealNotePage.hasNext(),
+                dealNotePage.hasPrevious()
         );
     }
 
     /**
-     * Search notes by keyword for a specific deal with pagination
+     * Search deal notes by keyword for a specific deal with pagination
      *
      * @param dealId Deal ID
      * @param searchTerm Search term
@@ -366,8 +366,8 @@ public class NoteService {
      * @param size Page size
      * @return Paginated response with matching note DTOs
      */
-    public PaginatedResponse<NoteDTO> searchNotesByDealIdPaginated(String dealId, String searchTerm,
-                                                                     Integer page, Integer size) {
+    public PaginatedResponse<DealNoteDTO> searchDealNotesByDealIdPaginated(String dealId, String searchTerm,
+                                                                             Integer page, Integer size) {
         log.info("Searching notes for deal ID: {} with term: {} - page: {}, size: {}",
                  dealId, searchTerm, page, size);
 
@@ -386,23 +386,23 @@ public class NoteService {
         Pageable pageable = PageRequest.of(pageNumber, pageSize);
 
         // Search notes for the deal with pagination
-        Page<Note> notePage = noteRepository.searchNotesByDealId(dealId, searchTerm, pageable);
+        Page<DealNote> dealNotePage = dealNoteRepository.searchDealNotesByDealId(dealId, searchTerm, pageable);
 
         // Convert to DTOs
-        List<NoteDTO> noteDTOs = noteMapper.toDTO(notePage.getContent());
+        List<DealNoteDTO> dealNoteDTOs = dealNoteMapper.toDTO(dealNotePage.getContent());
 
         log.info("Found {} notes for deal ID: {} matching search term: {} on page {} of {}",
-                 noteDTOs.size(), dealId, searchTerm, pageNumber, notePage.getTotalPages());
+                 dealNoteDTOs.size(), dealId, searchTerm, pageNumber, dealNotePage.getTotalPages());
 
         // Build paginated response
         return PaginatedResponse.of(
-                noteDTOs,
-                notePage.getTotalElements(),
-                notePage.getTotalPages(),
+                dealNoteDTOs,
+                dealNotePage.getTotalElements(),
+                dealNotePage.getTotalPages(),
                 pageNumber,
                 pageSize,
-                notePage.hasNext(),
-                notePage.hasPrevious()
+                dealNotePage.hasNext(),
+                dealNotePage.hasPrevious()
         );
     }
 
