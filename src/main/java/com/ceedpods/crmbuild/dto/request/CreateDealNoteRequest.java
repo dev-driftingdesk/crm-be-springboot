@@ -1,5 +1,6 @@
 package com.ceedpods.crmbuild.dto.request;
 
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -7,17 +8,22 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 /**
- * Request DTO for updating an existing note
+ * Request DTO for creating a new deal note
  */
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class UpdateNoteRequest {
+public class CreateDealNoteRequest {
+
+    @NotBlank(message = "Deal ID is required")
+    @Size(max = 50, message = "Deal ID must not exceed 50 characters")
+    private String dealId; // Deal ID reference (required)
 
     @Size(max = 200, message = "Note title must not exceed 200 characters")
     private String noteTitle; // Note title (optional)
 
+    @NotBlank(message = "Note content is required")
     @Size(max = 5000, message = "Note content must not exceed 5000 characters")
-    private String noteContent; // Note content/description (optional)
+    private String noteContent; // Note content/description (required)
 }

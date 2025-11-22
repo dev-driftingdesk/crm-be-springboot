@@ -1,4 +1,4 @@
-package com.ceedpods.crmbuild.entity.note;
+package com.ceedpods.crmbuild.entity.dealnote;
 
 import com.ceedpods.crmbuild.constants.AppConstants;
 import com.ceedpods.crmbuild.entity.BaseEntity;
@@ -11,7 +11,7 @@ import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 /**
- * Note entity - represents notes attached to deals
+ * DealNote entity - represents notes attached to deals
  */
 @Data
 @Builder
@@ -19,10 +19,10 @@ import org.springframework.data.mongodb.core.mapping.Document;
 @AllArgsConstructor
 @EqualsAndHashCode(callSuper = true)
 @Document(collection = AppConstants.MongoDB.COLLECTION_DEAL_NOTES)
-public class Note extends BaseEntity {
+public class DealNote extends BaseEntity {
 
     @Id
-    private String id; // UUID as primary ID (noteId)
+    private String id; // UUID as primary ID (dealNoteId)
 
     private String dealId; // Deal ID reference (required)
 

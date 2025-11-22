@@ -1,27 +1,27 @@
 package com.ceedpods.crmbuild.mapper;
 
-import com.ceedpods.crmbuild.dto.note.NoteDTO;
-import com.ceedpods.crmbuild.entity.note.Note;
+import com.ceedpods.crmbuild.dto.dealnote.DealNoteDTO;
+import com.ceedpods.crmbuild.entity.dealnote.DealNote;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
 import java.util.stream.Collectors;
 
 /**
- * Mapper for converting between Note entity and NoteDTO
+ * Mapper for converting between DealNote entity and DealNoteDTO
  */
 @Component
-public class NoteMapper {
+public class DealNoteMapper {
 
     /**
-     * Convert Note entity to NoteDTO
+     * Convert DealNote entity to DealNoteDTO
      */
-    public NoteDTO toDTO(Note entity) {
+    public DealNoteDTO toDTO(DealNote entity) {
         if (entity == null) {
             return null;
         }
 
-        NoteDTO dto = NoteDTO.builder()
+        DealNoteDTO dto = DealNoteDTO.builder()
                 .id(entity.getId())
                 .dealId(entity.getDealId())
                 .noteTitle(entity.getNoteTitle())
@@ -41,14 +41,14 @@ public class NoteMapper {
     }
 
     /**
-     * Convert NoteDTO to Note entity
+     * Convert DealNoteDTO to DealNote entity
      */
-    public Note toEntity(NoteDTO dto) {
+    public DealNote toEntity(DealNoteDTO dto) {
         if (dto == null) {
             return null;
         }
 
-        Note entity = Note.builder()
+        DealNote entity = DealNote.builder()
                 .dealId(dto.getDealId())
                 .noteTitle(dto.getNoteTitle())
                 .noteContent(dto.getNoteContent())
@@ -70,7 +70,7 @@ public class NoteMapper {
     /**
      * Batch conversion from entities to DTOs
      */
-    public List<NoteDTO> toDTO(List<Note> entities) {
+    public List<DealNoteDTO> toDTO(List<DealNote> entities) {
         if (entities == null) {
             return null;
         }
@@ -82,7 +82,7 @@ public class NoteMapper {
     /**
      * Batch conversion from DTOs to entities
      */
-    public List<Note> toEntity(List<NoteDTO> dtos) {
+    public List<DealNote> toEntity(List<DealNoteDTO> dtos) {
         if (dtos == null) {
             return null;
         }
