@@ -128,6 +128,8 @@ public final class AppConstants {
         public static final String COLLECTION_PRODUCTS = "products";
         public static final String COLLECTION_LEADS = "leads";
         public static final String COLLECTION_DEALS = "deals";
+        public static final String COLLECTION_DEAL_NOTES = "deal_notes";
+        public static final String COLLECTION_LEAD_NOTES = "lead_notes";
         public static final String COLLECTION_AGENT_CREDENTIALS = "agent_credentials";
         public static final String COLLECTION_MESSAGES = "messages";
     }
