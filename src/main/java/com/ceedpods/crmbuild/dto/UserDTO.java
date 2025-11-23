@@ -2,6 +2,7 @@ package com.ceedpods.crmbuild.dto;
 
 import com.ceedpods.crmbuild.enums.UserRole;
 import com.fasterxml.jackson.annotation.JsonFormat;
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -16,16 +17,34 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 @EqualsAndHashCode(callSuper = true)
+@Schema(description = "User data transfer object containing user profile and authentication information")
 public class UserDTO extends BaseDTO {
-    
+
+    @Schema(description = "User's internal database ID", example = "507f1f77bcf86cd799439011")
     private String id;
+
+    @Schema(description = "User's Keycloak UUID", example = "123e4567-e89b-12d3-a456-426614174000")
     private String keycloakId;
+
+    @Schema(description = "User's email address", example = "user@example.com")
     private String email;
+
+    @Schema(description = "User's first name", example = "John")
     private String firstName;
+
+    @Schema(description = "User's last name", example = "Doe")
     private String lastName;
+
+    @Schema(description = "User's full name", example = "John Doe")
     private String fullName;
+
+    @Schema(description = "User's role in the system", example = "SALES_REP")
     private UserRole role;
+
+    @Schema(description = "Whether the user account is enabled", example = "true")
     private boolean enabled;
+
+    @Schema(description = "Whether the user's email has been verified", example = "true")
     private boolean emailVerified;
     
     // Profile information

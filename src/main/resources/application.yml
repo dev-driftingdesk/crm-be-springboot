@@ -41,6 +41,9 @@ spring:
 
   # OAuth2 configuration - Keycloak required
   security:
+    user:
+      name: CRM
+      password: crm@fine
     oauth2:
       resourceserver:
         jwt:
@@ -141,3 +144,21 @@ management:
   endpoint:
     health:
       show-details: always
+
+# SpringDoc OpenAPI (Swagger) Configuration
+springdoc:
+  api-docs:
+    enabled: true
+    path: /api-docs
+  swagger-ui:
+    enabled: true
+    path: /swagger-ui.html
+    operations-sorter: alpha
+    tags-sorter: alpha
+    display-request-duration: true
+    doc-expansion: none
+    disable-swagger-default-url: true
+    try-it-out-enabled: true
+  show-actuator: false
+  default-consumes-media-type: application/json
+  default-produces-media-type: application/json

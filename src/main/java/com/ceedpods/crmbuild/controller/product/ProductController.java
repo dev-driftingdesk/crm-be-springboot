@@ -7,6 +7,10 @@ import com.ceedpods.crmbuild.dto.response.ApiResponse;
 import com.ceedpods.crmbuild.security.CustomPermissionEvaluator;
 import com.ceedpods.crmbuild.security.RequirePermission;
 import com.ceedpods.crmbuild.service.product.ProductService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -21,6 +25,8 @@ import java.util.List;
 @RequestMapping("/products")
 @RequiredArgsConstructor
 @Slf4j
+@Tag(name = "Product Management", description = "Operations for managing products and services in the catalog")
+@SecurityRequirement(name = "Bearer Authentication")
 public class ProductController {
 
     private final ProductService productService;
@@ -29,11 +35,12 @@ public class ProductController {
     /**
      * Create a new product (Admin only)
      */
+    @Operation(summary = "Create Product", description = "Creates a new product in the catalog. Requires PRODUCT_CREATE permission.")
     @PostMapping
     @RequirePermission("PRODUCT_CREATE")
     public ResponseEntity<ApiResponse<ProductDTO>> createProduct(
             @Valid @RequestBody CreateProductRequest request,
-            Authentication authentication) {
+            @Parameter(hidden = true) Authentication authentication) {
         try {
             log.info("Creating product: {}", request.getProductName());
             ProductDTO product = productService.createProduct(request);
@@ -49,6 +56,7 @@ public class ProductController {
     /**
      * Get all products
      */
+    @Operation(summary = "Get All Products", description = "Retrieves all products from the catalog")
     @GetMapping
     @RequirePermission("PRODUCT_VIEW_ALL")
     public ResponseEntity<ApiResponse<List<ProductDTO>>> getAllProducts() {
@@ -66,9 +74,11 @@ public class ProductController {
     /**
      * Get product by ID
      */
+    @Operation(summary = "Get Product by ID", description = "Retrieves a specific product by its UUID")
     @GetMapping("/{id}")
     @RequirePermission("PRODUCT_VIEW_ALL")
-    public ResponseEntity<ApiResponse<ProductDTO>> getProductById(@PathVariable String id) {
+    public ResponseEntity<ApiResponse<ProductDTO>> getProductById(
+            @Parameter(description = "Product UUID", required = true) @PathVariable String id) {
         try {
             log.info("Fetching product with ID: {}", id);
             ProductDTO product = productService.getProductById(id);
@@ -84,12 +94,13 @@ public class ProductController {
     /**
      * Update product
      */
+    @Operation(summary = "Update Product", description = "Updates an existing product. Requires PRODUCT_EDIT permission.")
     @PutMapping("/{id}")
     @RequirePermission("PRODUCT_EDIT")
     public ResponseEntity<ApiResponse<ProductDTO>> updateProduct(
-            @PathVariable String id,
+            @Parameter(description = "Product UUID", required = true) @PathVariable String id,
             @Valid @RequestBody UpdateProductRequest request,
-            Authentication authentication) {
+            @Parameter(hidden = true) Authentication authentication) {
         try {
             log.info("Updating product with ID: {}", id);
             ProductDTO product = productService.updateProduct(id, request);
@@ -104,11 +115,12 @@ public class ProductController {
     /**
      * Delete product (soft delete)
      */
+    @Operation(summary = "Delete Product", description = "Soft deletes a product. Requires PRODUCT_DELETE permission.")
     @DeleteMapping("/{id}")
     @RequirePermission("PRODUCT_DELETE")
     public ResponseEntity<ApiResponse<Void>> deleteProduct(
-            @PathVariable String id,
-            Authentication authentication) {
+            @Parameter(description = "Product UUID", required = true) @PathVariable String id,
+            @Parameter(hidden = true) Authentication authentication) {
         try {
             String deletedBy = permissionEvaluator.getCurrentKeycloakId(authentication);
             log.info("Deleting product with ID: {} by user: {}", id, deletedBy);
@@ -124,10 +136,11 @@ public class ProductController {
     /**
      * Search products
      */
+    @Operation(summary = "Search Products", description = "Searches products by name or other fields")
     @GetMapping("/search")
     @RequirePermission("PRODUCT_VIEW_ALL")
     public ResponseEntity<ApiResponse<List<ProductDTO>>> searchProducts(
-            @RequestParam String query) {
+            @Parameter(description = "Search query", required = true) @RequestParam String query) {
         try {
             log.info("Searching products with query: {}", query);
             List<ProductDTO> products = productService.searchProducts(query);
