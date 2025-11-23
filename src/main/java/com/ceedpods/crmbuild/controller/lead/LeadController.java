@@ -7,6 +7,14 @@ import com.ceedpods.crmbuild.dto.response.ApiResponse;
 import com.ceedpods.crmbuild.security.CustomPermissionEvaluator;
 import com.ceedpods.crmbuild.security.RequirePermission;
 import com.ceedpods.crmbuild.service.lead.LeadService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.ExampleObject;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -21,6 +29,8 @@ import java.util.List;
 @RequestMapping("/leads")
 @RequiredArgsConstructor
 @Slf4j
+@Tag(name = "Lead Management", description = "Operations for managing sales leads and prospects")
+@SecurityRequirement(name = "Bearer Authentication")
 public class LeadController {
 
     private final LeadService leadService;
@@ -29,11 +39,70 @@ public class LeadController {
     /**
      * Create a new lead (Admin only)
      */
+    @Operation(
+        summary = "Create Lead",
+        description = "Creates a new sales lead in the system. Requires LEAD_CREATE permission."
+    )
+    @ApiResponses(value = {
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(
+            responseCode = "201",
+            description = "Lead created successfully",
+            content = @Content(
+                mediaType = "application/json",
+                schema = @Schema(implementation = ApiResponse.class),
+                examples = @ExampleObject(value = """
+                    {
+                      "success": true,
+                      "message": "Lead created successfully",
+                      "data": {
+                        "id": "lead-uuid",
+                        "firstName": "John",
+                        "lastName": "Doe",
+                        "email": "john.doe@example.com",
+                        "phone": "+1234567890",
+                        "company": "Acme Corp",
+                        "status": "NEW",
+                        "source": "WEBSITE",
+                        "assignedTo": "sales-rep-uuid"
+                      }
+                    }
+                    """)
+            )
+        ),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(
+            responseCode = "400",
+            description = "Invalid request data"
+        ),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(
+            responseCode = "403",
+            description = "Insufficient permissions"
+        )
+    })
     @PostMapping
     @RequirePermission("LEAD_CREATE")
     public ResponseEntity<ApiResponse<LeadDTO>> createLead(
+            @io.swagger.v3.oas.annotations.parameters.RequestBody(
+                description = "Lead details",
+                required = true,
+                content = @Content(
+                    schema = @Schema(implementation = CreateLeadRequest.class),
+                    examples = @ExampleObject(value = """
+                        {
+                          "firstName": "John",
+                          "lastName": "Doe",
+                          "email": "john.doe@example.com",
+                          "phone": "+1234567890",
+                          "company": "Acme Corp",
+                          "jobTitle": "CEO",
+                          "source": "WEBSITE",
+                          "assignedTo": "sales-rep-uuid",
+                          "notes": "Interested in product demo"
+                        }
+                        """)
+                )
+            )
             @Valid @RequestBody CreateLeadRequest request,
-            Authentication authentication) {
+            @Parameter(hidden = true) Authentication authentication) {
         try {
             log.info("Creating new lead");
             LeadDTO lead = leadService.createLead(request, authentication);
@@ -49,6 +118,24 @@ public class LeadController {
     /**
      * Get all leads
      */
+    @Operation(
+        summary = "Get All Leads",
+        description = "Retrieves all leads in the system. Requires LEAD_VIEW_ALL permission."
+    )
+    @ApiResponses(value = {
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(
+            responseCode = "200",
+            description = "Leads retrieved successfully",
+            content = @Content(
+                mediaType = "application/json",
+                schema = @Schema(implementation = ApiResponse.class)
+            )
+        ),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(
+            responseCode = "403",
+            description = "Insufficient permissions"
+        )
+    })
     @GetMapping
     @RequirePermission("LEAD_VIEW_ALL")
     public ResponseEntity<ApiResponse<List<LeadDTO>>> getAllLeads() {
@@ -66,9 +153,29 @@ public class LeadController {
     /**
      * Get lead by UUID
      */
+    @Operation(
+        summary = "Get Lead by ID",
+        description = "Retrieves a specific lead by its UUID. Requires LEAD_VIEW_ALL permission."
+    )
+    @ApiResponses(value = {
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(
+            responseCode = "200",
+            description = "Lead found",
+            content = @Content(
+                mediaType = "application/json",
+                schema = @Schema(implementation = ApiResponse.class)
+            )
+        ),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(
+            responseCode = "404",
+            description = "Lead not found"
+        )
+    })
     @GetMapping("/{id}")
     @RequirePermission("LEAD_VIEW_ALL")
-    public ResponseEntity<ApiResponse<LeadDTO>> getLeadById(@PathVariable String id) {
+    public ResponseEntity<ApiResponse<LeadDTO>> getLeadById(
+            @Parameter(description = "Lead UUID", required = true, example = "123e4567-e89b-12d3-a456-426614174000")
+            @PathVariable String id) {
         try {
             log.info("Fetching lead with UUID: {}", id);
             LeadDTO lead = leadService.getLeadById(id);
@@ -83,12 +190,36 @@ public class LeadController {
     /**
      * Update lead (Admin only)
      */
+    @Operation(
+        summary = "Update Lead",
+        description = "Updates an existing lead. Requires LEAD_EDIT permission."
+    )
+    @ApiResponses(value = {
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(
+            responseCode = "200",
+            description = "Lead updated successfully"
+        ),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(
+            responseCode = "404",
+            description = "Lead not found"
+        ),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(
+            responseCode = "403",
+            description = "Insufficient permissions"
+        )
+    })
     @PutMapping("/{id}")
     @RequirePermission("LEAD_EDIT")
     public ResponseEntity<ApiResponse<LeadDTO>> updateLead(
+            @Parameter(description = "Lead UUID", required = true)
             @PathVariable String id,
+            @io.swagger.v3.oas.annotations.parameters.RequestBody(
+                description = "Updated lead details",
+                required = true,
+                content = @Content(schema = @Schema(implementation = UpdateLeadRequest.class))
+            )
             @Valid @RequestBody UpdateLeadRequest request,
-            Authentication authentication) {
+            @Parameter(hidden = true) Authentication authentication) {
         try {
             log.info("Updating lead with ID: {}", id);
             LeadDTO lead = leadService.updateLead(id, request, authentication);
@@ -103,11 +234,26 @@ public class LeadController {
     /**
      * Delete lead (soft delete) (Admin only)
      */
+    @Operation(
+        summary = "Delete Lead",
+        description = "Soft deletes a lead (marks as deleted without removing from database). Requires LEAD_DELETE permission."
+    )
+    @ApiResponses(value = {
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(
+            responseCode = "200",
+            description = "Lead deleted successfully"
+        ),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(
+            responseCode = "404",
+            description = "Lead not found"
+        )
+    })
     @DeleteMapping("/{id}")
     @RequirePermission("LEAD_DELETE")
     public ResponseEntity<ApiResponse<Void>> deleteLead(
+            @Parameter(description = "Lead UUID", required = true)
             @PathVariable String id,
-            Authentication authentication) {
+            @Parameter(hidden = true) Authentication authentication) {
         try {
             log.info("Deleting lead with ID: {}", id);
             leadService.deleteLead(id, authentication);
@@ -122,9 +268,14 @@ public class LeadController {
     /**
      * Search leads
      */
+    @Operation(
+        summary = "Search Leads",
+        description = "Searches leads by name, email, company, or other fields"
+    )
     @GetMapping("/search")
     @RequirePermission("LEAD_VIEW_ALL")
     public ResponseEntity<ApiResponse<List<LeadDTO>>> searchLeads(
+            @Parameter(description = "Search query", required = true, example = "john")
             @RequestParam String query) {
         try {
             log.info("Searching leads with query: {}", query);

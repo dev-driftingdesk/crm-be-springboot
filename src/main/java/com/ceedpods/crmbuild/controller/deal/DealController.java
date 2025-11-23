@@ -7,6 +7,13 @@ import com.ceedpods.crmbuild.dto.response.ApiResponse;
 import com.ceedpods.crmbuild.security.CustomPermissionEvaluator;
 import com.ceedpods.crmbuild.security.RequirePermission;
 import com.ceedpods.crmbuild.service.deal.DealService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -21,6 +28,8 @@ import java.util.List;
 @RequestMapping("/deals")
 @RequiredArgsConstructor
 @Slf4j
+@Tag(name = "Deal Management", description = "Operations for managing sales deals and opportunities")
+@SecurityRequirement(name = "Bearer Authentication")
 public class DealController {
 
     private final DealService dealService;
@@ -29,11 +38,21 @@ public class DealController {
     /**
      * Create a new deal (Admin only)
      */
+    @Operation(
+        summary = "Create Deal",
+        description = "Creates a new sales deal/opportunity. Requires DEAL_CREATE permission."
+    )
+    @ApiResponses(value = {
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "201", description = "Deal created successfully"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Invalid request data"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "Insufficient permissions")
+    })
     @PostMapping
     @RequirePermission("DEAL_CREATE")
     public ResponseEntity<ApiResponse<DealDTO>> createDeal(
+            @io.swagger.v3.oas.annotations.parameters.RequestBody(description = "Deal details", required = true)
             @Valid @RequestBody CreateDealRequest request,
-            Authentication authentication) {
+            @Parameter(hidden = true) Authentication authentication) {
         try {
             log.info("Creating new deal");
             DealDTO deal = dealService.createDeal(request, authentication);
@@ -49,6 +68,7 @@ public class DealController {
     /**
      * Get all deals
      */
+    @Operation(summary = "Get All Deals", description = "Retrieves all deals in the system")
     @GetMapping
     @RequirePermission("DEAL_VIEW_ALL")
     public ResponseEntity<ApiResponse<List<DealDTO>>> getAllDeals() {
@@ -66,9 +86,11 @@ public class DealController {
     /**
      * Get deal by UUID
      */
+    @Operation(summary = "Get Deal by ID", description = "Retrieves a specific deal by UUID")
     @GetMapping("/{id}")
     @RequirePermission("DEAL_VIEW_ALL")
-    public ResponseEntity<ApiResponse<DealDTO>> getDealById(@PathVariable String id) {
+    public ResponseEntity<ApiResponse<DealDTO>> getDealById(
+            @Parameter(description = "Deal UUID", required = true) @PathVariable String id) {
         try {
             log.info("Fetching deal with UUID: {}", id);
             DealDTO deal = dealService.getDealById(id);
@@ -83,12 +105,13 @@ public class DealController {
     /**
      * Update deal (Admin only)
      */
+    @Operation(summary = "Update Deal", description = "Updates an existing deal. Requires DEAL_EDIT permission.")
     @PutMapping("/{id}")
     @RequirePermission("DEAL_EDIT")
     public ResponseEntity<ApiResponse<DealDTO>> updateDeal(
-            @PathVariable String id,
+            @Parameter(description = "Deal UUID", required = true) @PathVariable String id,
             @Valid @RequestBody UpdateDealRequest request,
-            Authentication authentication) {
+            @Parameter(hidden = true) Authentication authentication) {
         try {
             log.info("Updating deal with ID: {}", id);
             DealDTO deal = dealService.updateDeal(id, request, authentication);
@@ -103,11 +126,12 @@ public class DealController {
     /**
      * Delete deal (hard delete) (Admin only)
      */
+    @Operation(summary = "Delete Deal", description = "Permanently deletes a deal. Requires DEAL_DELETE permission.")
     @DeleteMapping("/{id}")
     @RequirePermission("DEAL_DELETE")
     public ResponseEntity<ApiResponse<Void>> deleteDeal(
-            @PathVariable String id,
-            Authentication authentication) {
+            @Parameter(description = "Deal UUID", required = true) @PathVariable String id,
+            @Parameter(hidden = true) Authentication authentication) {
         try {
             log.info("Deleting deal with ID: {}", id);
             dealService.deleteDeal(id, authentication);
@@ -122,10 +146,11 @@ public class DealController {
     /**
      * Search deals
      */
+    @Operation(summary = "Search Deals", description = "Searches deals by name or other fields")
     @GetMapping("/search")
     @RequirePermission("DEAL_VIEW_ALL")
     public ResponseEntity<ApiResponse<List<DealDTO>>> searchDeals(
-            @RequestParam String query) {
+            @Parameter(description = "Search query", required = true) @RequestParam String query) {
         try {
             log.info("Searching deals with query: {}", query);
             List<DealDTO> deals = dealService.searchDeals(query);

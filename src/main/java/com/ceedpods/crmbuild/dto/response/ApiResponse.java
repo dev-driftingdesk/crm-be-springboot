@@ -1,6 +1,7 @@
 package com.ceedpods.crmbuild.dto.response;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -12,15 +13,26 @@ import java.time.LocalDateTime;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@Schema(description = "Standard API response wrapper containing status, message, and data")
 public class ApiResponse<T> {
-    
+
+    @Schema(description = "Indicates if the request was successful", example = "true")
     private boolean success;
+
+    @Schema(description = "Human-readable message about the operation", example = "Operation completed successfully")
     private String message;
+
+    @Schema(description = "Response payload data")
     private T data;
+
+    @Schema(description = "Error code for failed requests", example = "ERR_VALIDATION")
     private String errorCode;
+
+    @Schema(description = "Request path where error occurred", example = "/api/v1/users")
     private String path;
-    
+
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd HH:mm:ss")
+    @Schema(description = "Timestamp when the response was generated", example = "2025-01-15 14:30:00")
     private LocalDateTime timestamp;
     
     public static <T> ApiResponse<T> success(T data) {
