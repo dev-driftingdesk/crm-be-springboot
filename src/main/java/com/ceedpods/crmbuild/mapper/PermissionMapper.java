@@ -21,7 +21,6 @@ public class PermissionMapper {
             .displayName(entity.getDisplayName())
             .description(entity.getDescription())
             .category(entity.getCategory())
-            .adminOnly(entity.isAdminOnly())
             .assignable(entity.isAssignable())
             .active(entity.isActive())
             .isSystemPermission(true) // All permissions are system permissions
@@ -38,7 +37,6 @@ public class PermissionMapper {
             .displayName(dto.getDisplayName())
             .description(dto.getDescription())
             .category(dto.getCategory())
-            .adminOnly(dto.isAdminOnly())
             .assignable(dto.isAssignable())
             .active(dto.isActive())
             .build();

@@ -120,6 +120,7 @@ public final class AppConstants {
 
         // Collection names
         public static final String COLLECTION_USERS = "users";
+        public static final String COLLECTION_ROLES = "roles";
         public static final String COLLECTION_PERMISSIONS = "permissions";
         public static final String COLLECTION_USER_PERMISSIONS = "user_permissions";
         public static final String COLLECTION_USER_RELATIONSHIPS = "user_relationships";

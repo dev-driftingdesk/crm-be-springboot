@@ -19,7 +19,6 @@ public class PermissionDTO extends BaseDTO {
     private String displayName;
     private String description;
     private PermissionCategory category;
-    private boolean adminOnly;
     private boolean assignable;
     private boolean active;
     
