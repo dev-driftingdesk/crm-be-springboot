@@ -16,15 +16,15 @@ import java.util.List;
 public interface DealNoteRepository extends MongoRepository<DealNote, String> {
 
     /**
-     * Find all non-deleted deal notes
+     * Find all non-deleted deal notes, ordered by creation date (newest first)
      */
-    @Query("{ 'deleted': false }")
+    @Query(value = "{ 'deleted': false }", sort = "{ 'createdAt': -1 }")
     List<DealNote> findByDeletedFalse();
 
     /**
-     * Find all non-deleted deal notes for a specific deal
+     * Find all non-deleted deal notes for a specific deal, ordered by creation date (newest first)
      */
-    @Query("{ 'dealId': ?0, 'deleted': false }")
+    @Query(value = "{ 'dealId': ?0, 'deleted': false }", sort = "{ 'createdAt': -1 }")
     List<DealNote> findByDealIdAndDeletedFalse(String dealId);
 
     /**
@@ -39,25 +39,25 @@ public interface DealNoteRepository extends MongoRepository<DealNote, String> {
     long countByDealIdAndDeletedFalse(String dealId);
 
     /**
-     * Search deal notes by keyword (searches in note title and content)
+     * Search deal notes by keyword (searches in note title and content), ordered by creation date (newest first)
      */
-    @Query("{ '$or': [ " +
+    @Query(value = "{ '$or': [ " +
            "{ 'noteTitle': { '$regex': ?0, '$options': 'i' } }, " +
            "{ 'noteContent': { '$regex': ?0, '$options': 'i' } } " +
-           "], 'deleted': false }")
+           "], 'deleted': false }", sort = "{ 'createdAt': -1 }")
     List<DealNote> searchDealNotes(String searchTerm);
 
     /**
-     * Search deal notes by keyword for a specific deal
+     * Search deal notes by keyword for a specific deal, ordered by creation date (newest first)
      */
-    @Query("{ '$and': [ " +
+    @Query(value = "{ '$and': [ " +
            "{ 'dealId': ?0 }, " +
            "{ '$or': [ " +
            "{ 'noteTitle': { '$regex': ?1, '$options': 'i' } }, " +
            "{ 'noteContent': { '$regex': ?1, '$options': 'i' } } " +
            "] }, " +
            "{ 'deleted': false } " +
-           "]}")
+           "]}", sort = "{ 'createdAt': -1 }")
     List<DealNote> searchDealNotesByDealId(String dealId, String searchTerm);
 
     // ==================== PAGINATED METHODS ====================

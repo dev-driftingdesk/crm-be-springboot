@@ -13,6 +13,7 @@ import com.ceedpods.crmbuild.repository.LeadRepository;
 import com.ceedpods.crmbuild.repository.ProductRepository;
 import com.ceedpods.crmbuild.repository.UserRepository;
 import com.ceedpods.crmbuild.security.CustomPermissionEvaluator;
+import com.ceedpods.crmbuild.service.auditLogService.AuditLogService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.Authentication;
@@ -33,6 +34,7 @@ public class DealService {
     private final LeadRepository leadRepository;
     private final DealMapper dealMapper;
     private final CustomPermissionEvaluator permissionEvaluator;
+    private final AuditLogService auditLogService;
 
     /**
      * Get all deals (excluding soft-deleted)
@@ -104,6 +106,9 @@ public class DealService {
         Deal savedDeal = dealRepository.save(deal);
         log.info("Successfully created deal with UUID: {} by user: {}", savedDeal.getId(), savedDeal.getCreatedBy());
 
+        // Log audit event
+        auditLogService.logDealCreated(authentication, savedDeal.getId(), savedDeal.getDealName());
+
         return dealMapper.toDTO(savedDeal);
     }
 
@@ -157,6 +162,9 @@ public class DealService {
         Deal updatedDeal = dealRepository.save(deal);
         log.info("Successfully updated deal with ID: {} by user: {}", updatedDeal.getId(), updatedDeal.getUpdatedBy());
 
+        // Log audit event
+        auditLogService.logDealUpdated(authentication, updatedDeal.getId(), updatedDeal.getDealName());
+
         return dealMapper.toDTO(updatedDeal);
     }
 
@@ -177,10 +185,16 @@ public class DealService {
         Deal deal = dealRepository.findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("Deal not found with ID: " + id));
 
+        // Store deal name before deletion for audit log
+        String dealName = deal.getDealName();
+
         // Hard delete - actually remove from database
         dealRepository.delete(deal);
 
         log.info("Successfully deleted deal with ID: {} from database by admin user", id);
+
+        // Log audit event
+        auditLogService.logDealDeleted(authentication, id, dealName);
     }
 
     /**

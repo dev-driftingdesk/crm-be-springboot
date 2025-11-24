@@ -9,6 +9,7 @@ import com.ceedpods.crmbuild.entity.messaging.Message;
 import com.ceedpods.crmbuild.mapper.MessageMapper;
 import com.ceedpods.crmbuild.repository.AgentCredentialRepository;
 import com.ceedpods.crmbuild.security.RequirePermission;
+import com.ceedpods.crmbuild.service.auditLogService.AuditLogService;
 import com.ceedpods.crmbuild.service.messaging.EncryptionService;
 import com.ceedpods.crmbuild.service.messaging.MessageDispatchService;
 import jakarta.validation.Valid;
@@ -34,6 +35,7 @@ public class WhatsAppController {
     private final AgentCredentialRepository credentialRepository;
     private final EncryptionService encryptionService;
     private final MessageMapper messageMapper;
+    private final AuditLogService auditLogService;
 
     /**
      * Save Meta WhatsApp credentials
@@ -65,10 +67,14 @@ public class WhatsAppController {
                             .channel("WHATSAPP")
                             .build());
 
+            boolean isUpdate = credential.getEncryptedCredentials() != null && !credential.getEncryptedCredentials().isEmpty();
             credential.setEncryptedCredentials(encrypted);
             credential.setActive(true);
 
-            credentialRepository.save(credential);
+            AgentCredential savedCredential = credentialRepository.save(credential);
+
+            // Log audit event
+            auditLogService.logWhatsAppCredentialsSaved(authentication, savedCredential.getId(), isUpdate);
 
             return ResponseEntity.status(HttpStatus.CREATED)
                     .body(ApiResponse.success("WhatsApp credentials saved successfully", null));
@@ -98,6 +104,12 @@ public class WhatsAppController {
                     request.getRecipientPhone(),
                     request.getMessageBody()
             );
+
+            // Log audit event
+            String messagePreview = request.getMessageBody().length() > 50
+                    ? request.getMessageBody().substring(0, 50) + "..."
+                    : request.getMessageBody();
+            auditLogService.logWhatsAppSent(authentication, message.getId(), request.getRecipientPhone(), messagePreview);
 
             return ResponseEntity.status(HttpStatus.CREATED)
                     .body(ApiResponse.success("Message sent", messageMapper.toDTO(message)));

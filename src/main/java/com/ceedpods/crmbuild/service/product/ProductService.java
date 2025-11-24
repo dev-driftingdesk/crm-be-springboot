@@ -8,8 +8,11 @@ import com.ceedpods.crmbuild.exception.BadRequestException;
 import com.ceedpods.crmbuild.exception.ResourceNotFoundException;
 import com.ceedpods.crmbuild.mapper.ProductMapper;
 import com.ceedpods.crmbuild.repository.ProductRepository;
+import com.ceedpods.crmbuild.service.auditLogService.AuditLogService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -22,6 +25,7 @@ public class ProductService {
 
     private final ProductRepository productRepository;
     private final ProductMapper productMapper;
+    private final AuditLogService auditLogService;
 
     /**
      * Get all products (excluding soft-deleted)
@@ -67,6 +71,10 @@ public class ProductService {
         Product savedProduct = productRepository.save(product);
         log.info("Successfully created product with UUID: {}", savedProduct.getId());
 
+        // Log audit event
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        auditLogService.logProductCreated(authentication, savedProduct.getId(), savedProduct.getProductName());
+
         return productMapper.toDTO(savedProduct);
     }
 
@@ -103,6 +111,10 @@ public class ProductService {
         Product updatedProduct = productRepository.save(product);
         log.info("Successfully updated product with ID: {}", updatedProduct.getId());
 
+        // Log audit event
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        auditLogService.logProductUpdated(authentication, updatedProduct.getId(), updatedProduct.getProductName());
+
         return productMapper.toDTO(updatedProduct);
     }
 
@@ -118,11 +130,18 @@ public class ProductService {
             .filter(p -> !p.isDeleted())
             .orElseThrow(() -> new ResourceNotFoundException("Product not found with ID: " + id));
 
+        // Store product name before deletion for audit log
+        String productName = product.getProductName();
+
         // Soft delete
         product.markAsDeleted(deletedBy);
         productRepository.save(product);
 
         log.info("Successfully deleted product with ID: {}", id);
+
+        // Log audit event
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        auditLogService.logProductDeleted(authentication, id, productName);
     }
 
     /**

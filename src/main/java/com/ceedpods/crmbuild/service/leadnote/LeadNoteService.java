@@ -10,11 +10,13 @@ import com.ceedpods.crmbuild.exception.ResourceNotFoundException;
 import com.ceedpods.crmbuild.mapper.LeadNoteMapper;
 import com.ceedpods.crmbuild.repository.LeadNoteRepository;
 import com.ceedpods.crmbuild.repository.LeadRepository;
+import com.ceedpods.crmbuild.service.auditLogService.AuditLogService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -33,6 +35,7 @@ public class LeadNoteService {
     private final LeadNoteRepository leadNoteRepository;
     private final LeadRepository leadRepository;
     private final LeadNoteMapper leadNoteMapper;
+    private final AuditLogService auditLogService;
 
     // Pagination constants (following project convention)
     private static final int DEFAULT_PAGE = 0;
@@ -67,6 +70,9 @@ public class LeadNoteService {
         // Save note
         LeadNote savedLeadNote = leadNoteRepository.save(leadNote);
         log.info("Lead note created successfully with ID: {}", savedLeadNote.getId());
+
+        // Log audit event
+        auditLogService.logLeadNoteCreated(authentication, savedLeadNote.getId(), savedLeadNote.getNoteTitle());
 
         return leadNoteMapper.toDTO(savedLeadNote);
     }
@@ -135,6 +141,9 @@ public class LeadNoteService {
         LeadNote updatedLeadNote = leadNoteRepository.save(leadNote);
         log.info("Lead note updated successfully with ID: {}", updatedLeadNote.getId());
 
+        // Log audit event
+        auditLogService.logLeadNoteUpdated(authentication, updatedLeadNote.getId(), updatedLeadNote.getNoteTitle());
+
         return leadNoteMapper.toDTO(updatedLeadNote);
     }
 
@@ -153,9 +162,15 @@ public class LeadNoteService {
                 .filter(n -> !n.isDeleted())
                 .orElseThrow(() -> new ResourceNotFoundException("Lead note not found with ID: " + id));
 
+        // Store note title before deletion for audit log
+        String noteTitle = leadNote.getNoteTitle();
+
         // Hard delete the note
         leadNoteRepository.delete(leadNote);
         log.info("Lead note deleted successfully with ID: {}", id);
+
+        // Log audit event
+        auditLogService.logLeadNoteDeleted(authentication, id, noteTitle);
     }
 
     /**
@@ -249,8 +264,8 @@ public class LeadNoteService {
         int pageNumber = (page != null && page >= 0) ? page : DEFAULT_PAGE;
         int pageSize = (size != null && size > 0) ? Math.min(size, MAX_SIZE) : DEFAULT_SIZE;
 
-        // Create pageable request
-        Pageable pageable = PageRequest.of(pageNumber, pageSize);
+        // Create pageable request with descending sort by createdAt
+        Pageable pageable = PageRequest.of(pageNumber, pageSize, Sort.by(Sort.Direction.DESC, "createdAt"));
 
         // Fetch paginated notes
         Page<LeadNote> leadNotePage = leadNoteRepository.findByDeletedFalse(pageable);
@@ -290,8 +305,8 @@ public class LeadNoteService {
         int pageNumber = (page != null && page >= 0) ? page : DEFAULT_PAGE;
         int pageSize = (size != null && size > 0) ? Math.min(size, MAX_SIZE) : DEFAULT_SIZE;
 
-        // Create pageable request
-        Pageable pageable = PageRequest.of(pageNumber, pageSize);
+        // Create pageable request with descending sort by createdAt
+        Pageable pageable = PageRequest.of(pageNumber, pageSize, Sort.by(Sort.Direction.DESC, "createdAt"));
 
         // Fetch paginated notes for the lead
         Page<LeadNote> leadNotePage = leadNoteRepository.findByLeadIdAndDeletedFalse(leadId, pageable);
@@ -333,8 +348,8 @@ public class LeadNoteService {
         int pageNumber = (page != null && page >= 0) ? page : DEFAULT_PAGE;
         int pageSize = (size != null && size > 0) ? Math.min(size, MAX_SIZE) : DEFAULT_SIZE;
 
-        // Create pageable request
-        Pageable pageable = PageRequest.of(pageNumber, pageSize);
+        // Create pageable request with descending sort by createdAt
+        Pageable pageable = PageRequest.of(pageNumber, pageSize, Sort.by(Sort.Direction.DESC, "createdAt"));
 
         // Search notes with pagination
         Page<LeadNote> leadNotePage = leadNoteRepository.searchLeadNotes(searchTerm, pageable);
@@ -382,8 +397,8 @@ public class LeadNoteService {
         int pageNumber = (page != null && page >= 0) ? page : DEFAULT_PAGE;
         int pageSize = (size != null && size > 0) ? Math.min(size, MAX_SIZE) : DEFAULT_SIZE;
 
-        // Create pageable request
-        Pageable pageable = PageRequest.of(pageNumber, pageSize);
+        // Create pageable request with descending sort by createdAt
+        Pageable pageable = PageRequest.of(pageNumber, pageSize, Sort.by(Sort.Direction.DESC, "createdAt"));
 
         // Search notes for the lead with pagination
         Page<LeadNote> leadNotePage = leadNoteRepository.searchLeadNotesByLeadId(leadId, searchTerm, pageable);

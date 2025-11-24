@@ -9,6 +9,7 @@ import com.ceedpods.crmbuild.entity.messaging.Message;
 import com.ceedpods.crmbuild.mapper.MessageMapper;
 import com.ceedpods.crmbuild.repository.AgentCredentialRepository;
 import com.ceedpods.crmbuild.security.RequirePermission;
+import com.ceedpods.crmbuild.service.auditLogService.AuditLogService;
 import com.ceedpods.crmbuild.service.messaging.EncryptionService;
 import com.ceedpods.crmbuild.service.messaging.MessageDispatchService;
 import jakarta.validation.Valid;
@@ -34,6 +35,7 @@ public class SmsController {
     private final AgentCredentialRepository credentialRepository;
     private final EncryptionService encryptionService;
     private final MessageMapper messageMapper;
+    private final AuditLogService auditLogService;
 
     /**
      * Save Twilio SMS credentials
@@ -65,10 +67,14 @@ public class SmsController {
                             .channel("SMS")
                             .build());
 
+            boolean isUpdate = credential.getEncryptedCredentials() != null && !credential.getEncryptedCredentials().isEmpty();
             credential.setEncryptedCredentials(encrypted);
             credential.setActive(true);
 
-            credentialRepository.save(credential);
+            AgentCredential savedCredential = credentialRepository.save(credential);
+
+            // Log audit event
+            auditLogService.logSmsCredentialsSaved(authentication, savedCredential.getId(), isUpdate);
 
             return ResponseEntity.status(HttpStatus.CREATED)
                     .body(ApiResponse.success("Twilio SMS credentials saved successfully", null));
@@ -98,6 +104,12 @@ public class SmsController {
                     request.getRecipientPhone(),
                     request.getMessageBody()
             );
+
+            // Log audit event
+            String messagePreview = request.getMessageBody().length() > 50
+                    ? request.getMessageBody().substring(0, 50) + "..."
+                    : request.getMessageBody();
+            auditLogService.logSmsSent(authentication, message.getId(), request.getRecipientPhone(), messagePreview);
 
             return ResponseEntity.status(HttpStatus.CREATED)
                     .body(ApiResponse.success("SMS sent", messageMapper.toDTO(message)));
