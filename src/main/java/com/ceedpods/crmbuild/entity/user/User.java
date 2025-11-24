@@ -39,7 +39,7 @@ public class User extends BaseEntity {
     private UserRole role;
     private boolean enabled = true;
     private boolean emailVerified = false;
-    
+    private List<String> permissions;
     // Profile information
     private String phoneNumber;
     private String department;
