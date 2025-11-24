@@ -128,6 +128,7 @@ public class UserService {
                 .firstName(invitation.getFirstName())
                 .lastName(invitation.getLastName())
                 .role(invitation.getRole())
+                    .permissions(invitation.getPermissionCodes())
                 .enabled(true)
                 .emailVerified(false)
                 .mustChangePassword(false) // User just set password

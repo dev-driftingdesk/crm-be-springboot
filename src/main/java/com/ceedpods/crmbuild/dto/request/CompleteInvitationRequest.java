@@ -9,6 +9,8 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
+import java.util.List;
+
 @Data
 @Builder
 @NoArgsConstructor
@@ -26,4 +28,9 @@ public class CompleteInvitationRequest {
     
     @NotBlank(message = "Confirm password is required")
     private String confirmPassword;
+
+    @NotBlank(message = "Permission codes are required")
+    private List<String> permissionCode;
+
+    private String phoneNumber;
 }
