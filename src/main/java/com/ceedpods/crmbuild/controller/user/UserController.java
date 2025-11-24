@@ -77,7 +77,7 @@ public class UserController {
             }
 
             // Assign to manager if specified and user is sales rep
-            if (request.getRole() == UserRole.SALES_REP && request.getAssignedManagerId() != null) {
+            if (request.getRole() == UserRole.SALES_EXECUTIVE && request.getAssignedManagerId() != null) {
                 try {
                     userHierarchyService.assignSalesRepToManager(
                         createdBy,
@@ -393,7 +393,7 @@ public class UserController {
                 .activeUsers(userService.getActiveUsersCount())
                 .adminUsers(userService.getUsersByRoleCount(UserRole.ADMIN))
                 .managerUsers(userService.getUsersByRoleCount(UserRole.MANAGER))
-                .salesRepUsers(userService.getUsersByRoleCount(UserRole.SALES_REP))
+                .salesRepUsers(userService.getUsersByRoleCount(UserRole.SALES_EXECUTIVE))
                 .build();
             
             return ResponseEntity.ok(ApiResponse.success(stats));

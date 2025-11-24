@@ -59,7 +59,7 @@ public class UserInvitationService {
         }
         
         // Validate manager assignment for sales reps
-        if (role == UserRole.SALES_REP && assignedManagerId != null) {
+        if (role == UserRole.SALES_EXECUTIVE && assignedManagerId != null) {
             User manager = userService.findByKeycloakId(assignedManagerId);
             if (manager == null || !manager.isManager()) {
                 throw new RuntimeException("Invalid manager assignment");
@@ -142,7 +142,7 @@ public class UserInvitationService {
         }
         
         // Assign to manager if specified
-        if (invitation.getRole() == UserRole.SALES_REP && invitation.getAssignedManagerId() != null) {
+        if (invitation.getRole() == UserRole.SALES_EXECUTIVE && invitation.getAssignedManagerId() != null) {
             try {
                 userHierarchyService.assignSalesRepToManager(
                     invitation.getInvitedBy(),

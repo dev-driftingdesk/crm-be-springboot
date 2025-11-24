@@ -37,7 +37,7 @@ public class RoleService {
             "Team management access with oversight capabilities",
             getDefaultPermissionsForManager());
             
-        createSystemRoleIfNotExists(UserRole.SALES_REP, "Sales Representative", 
+        createSystemRoleIfNotExists(UserRole.SALES_EXECUTIVE, "Sales Representative",
             "Sales-focused access for customer and lead management",
             getDefaultPermissionsForSalesRep());
         

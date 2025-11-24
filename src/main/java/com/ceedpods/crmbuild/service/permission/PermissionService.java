@@ -139,7 +139,7 @@ public class PermissionService {
                     "CALL_RECORDINGS_VIEW"
                 );
                 
-            case SALES_REP:
+            case SALES_EXECUTIVE:
                 return Arrays.asList(
                     "ANALYTICS_PERSONAL",
                     "LEAD_CREATE",
