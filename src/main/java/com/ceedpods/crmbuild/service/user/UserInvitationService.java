@@ -33,7 +33,7 @@ public class UserInvitationService {
     @Value("${app.invitation.expiry-hours:168}") // Default 7 days
     private int invitationExpiryHours;
     
-    @Value("${app.invitation.base-url:http://localhost:3000}")
+    @Value("${app.invitation.base-url:http://localhost:4200}")
     private String frontendBaseUrl;
     
     private final SecureRandom secureRandom = new SecureRandom();

@@ -62,6 +62,8 @@ public class UserController {
                 request.getLastName(),
                 request.getRole(),
                 request.getPassword(),
+                request.getPermissionCodes(),
+                request.getPhoneNumber(),
                 createdBy
             );
 

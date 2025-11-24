@@ -59,7 +59,7 @@ public class UserService {
     
     @Transactional
     public User createUser(String email, String firstName, String lastName, UserRole role, 
-                          String password, String createdBy) {
+                          String password,List<String> permisionCodes,String phonenumber, String createdBy) {
         // Check if user already exists
         if (existsByEmail(email)) {
             throw new RuntimeException("User with this email already exists");
@@ -82,6 +82,8 @@ public class UserService {
                 .firstName(firstName)
                 .lastName(lastName)
                 .role(role)
+                    .permissions(permisionCodes)
+                    .phoneNumber(phonenumber)
                 .enabled(true)
                 .emailVerified(false)
                 .mustChangePassword(true)
