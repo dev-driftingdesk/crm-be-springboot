@@ -243,31 +243,6 @@ jobs:
           fi
         done
 
-    - name: Create GitHub release
-      if: github.ref == 'refs/heads/dev'
-      uses: actions/create-release@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        tag_name: ${{ needs.build.outputs.image-tag }}
-        release_name: Release ${{ needs.build.outputs.image-tag }}
-        body: |
-          ## CeedPods Service Release ${{ needs.build.outputs.image-tag }}
-          
-          ### Changes
-          - Auto-deployment from dev branch
-          - Version: ${{ needs.build.outputs.version }}
-          - Commit: ${{ github.sha }}
-          
-          ### Deployment
-          - 🌐 Application URL: https://${{ steps.get-url.outputs.fqdn }}
-          - 🔗 API Base URL: https://${{ steps.get-url.outputs.fqdn }}/api/v1
-          - ❤️ Health Check: https://${{ steps.get-url.outputs.fqdn }}/api/v1/actuator/health
-          
-          ### Docker Image
-          - 📦 Image: `${{ env.REGISTRY_LOGIN_SERVER }}/${{ env.IMAGE_NAME }}:${{ needs.build.outputs.image-tag }}`
-        draft: false
-        prerelease: false
 
     - name: Deployment summary
       run: |
