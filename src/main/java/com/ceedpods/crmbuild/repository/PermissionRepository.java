@@ -18,14 +18,10 @@ public interface PermissionRepository extends MongoRepository<PermissionEntity, 
     
     List<PermissionEntity> findByAssignableTrue();
     
-    List<PermissionEntity> findByAdminOnlyFalse();
-    
-    List<PermissionEntity> findByAssignableTrueAndAdminOnlyFalse();
-    
     @Query("{ 'active': true, 'deleted': false }")
     List<PermissionEntity> findAllActive();
     
-    @Query("{ 'assignable': true, 'adminOnly': false, 'active': true, 'deleted': false }")
+    @Query("{ 'assignable': true, 'active': true, 'deleted': false }")
     List<PermissionEntity> findAllAssignablePermissions();
     
     boolean existsByPermissionCode(String permissionCode);

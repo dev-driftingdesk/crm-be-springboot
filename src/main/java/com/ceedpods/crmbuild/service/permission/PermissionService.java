@@ -37,7 +37,6 @@ public class PermissionService {
                     .displayName(permission.getDescription())
                     .description(permission.getDescription())
                     .category(permission.getCategory())
-                    .adminOnly(permission.isAdminOnly())
                     .assignable(permission.isAssignable())
                     .active(true)
                     .build();
@@ -61,16 +60,8 @@ public class PermissionService {
     }
     
     public List<PermissionEntity> getAssignablePermissionsForRole(UserRole targetRole) {
-        List<PermissionEntity> assignablePermissions = getAssignablePermissions();
-        
-        if (targetRole == UserRole.ADMIN) {
-            return assignablePermissions;
-        }
-        
-        // Filter out admin-only permissions for non-admin roles
-        return assignablePermissions.stream()
-            .filter(permission -> !permission.isAdminOnly())
-            .collect(Collectors.toList());
+        // Role-based permission management is now handled through roles collection
+        return getAssignablePermissions();
     }
     
     public List<PermissionEntity> getPermissionsByCategory(PermissionCategory category) {
@@ -106,20 +97,13 @@ public class PermissionService {
             
             PermissionEntity permission = permissionOpt.get();
             
-            // Rule 4: Cannot assign admin-only permissions to non-admins
-            if (permission.isAdminOnly() && targetUser.getRole() != UserRole.ADMIN) {
-                log.warn("Attempted to assign admin-only permission {} to non-admin user {}", 
-                    permissionCode, targetUserId);
-                return false;
-            }
-            
-            // Rule 5: Permission must be assignable
+            // Rule 4: Permission must be assignable
             if (!permission.isAssignable()) {
                 log.warn("Attempted to assign non-assignable permission: {}", permissionCode);
                 return false;
             }
             
-            // Rule 6: Permission must be active
+            // Rule 5: Permission must be active
             if (!permission.isActive()) {
                 log.warn("Attempted to assign inactive permission: {}", permissionCode);
                 return false;
