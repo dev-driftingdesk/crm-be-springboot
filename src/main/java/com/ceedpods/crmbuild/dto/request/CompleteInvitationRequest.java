@@ -29,8 +29,5 @@ public class CompleteInvitationRequest {
     @NotBlank(message = "Confirm password is required")
     private String confirmPassword;
 
-    @NotBlank(message = "Permission codes are required")
-    private List<String> permissionCode;
 
-    private String phoneNumber;
 }
