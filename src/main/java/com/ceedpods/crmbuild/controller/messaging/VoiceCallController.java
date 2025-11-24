@@ -9,6 +9,7 @@ import com.ceedpods.crmbuild.entity.messaging.Message;
 import com.ceedpods.crmbuild.mapper.MessageMapper;
 import com.ceedpods.crmbuild.repository.AgentCredentialRepository;
 import com.ceedpods.crmbuild.security.RequirePermission;
+import com.ceedpods.crmbuild.service.auditLogService.AuditLogService;
 import com.ceedpods.crmbuild.service.messaging.EncryptionService;
 import com.ceedpods.crmbuild.service.messaging.MessageDispatchService;
 import com.ceedpods.crmbuild.service.messaging.TwilioVoiceService;
@@ -38,6 +39,7 @@ public class VoiceCallController {
     private final EncryptionService encryptionService;
     private final MessageMapper messageMapper;
     private final TwilioVoiceService twilioVoiceService;
+    private final AuditLogService auditLogService;
 
     @Value("${app.url}")
     private String appUrl;
@@ -72,10 +74,14 @@ public class VoiceCallController {
                             .channel("VOICE")
                             .build());
 
+            boolean isUpdate = credential.getEncryptedCredentials() != null && !credential.getEncryptedCredentials().isEmpty();
             credential.setEncryptedCredentials(encrypted);
             credential.setActive(true);
 
-            credentialRepository.save(credential);
+            AgentCredential savedCredential = credentialRepository.save(credential);
+
+            // Log audit event
+            auditLogService.logVoiceCredentialsSaved(authentication, savedCredential.getId(), isUpdate);
 
             return ResponseEntity.status(HttpStatus.CREATED)
                     .body(ApiResponse.success("Twilio Voice credentials saved successfully", null));
@@ -112,6 +118,10 @@ public class VoiceCallController {
                     request.getRecord() != null ? request.getRecord() : false,
                     statusCallbackUrl
             );
+
+            // Log audit event
+            String callType = "Conference Call";
+            auditLogService.logVoiceCallInitiated(authentication, message.getId(), request.getRecipientUserId(), callType);
 
             return ResponseEntity.status(HttpStatus.CREATED)
                     .body(ApiResponse.success("Voice call initiated. Both users will receive calls.", messageMapper.toDTO(message)));

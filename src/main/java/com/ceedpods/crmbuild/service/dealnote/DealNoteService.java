@@ -10,11 +10,13 @@ import com.ceedpods.crmbuild.exception.ResourceNotFoundException;
 import com.ceedpods.crmbuild.mapper.DealNoteMapper;
 import com.ceedpods.crmbuild.repository.DealRepository;
 import com.ceedpods.crmbuild.repository.DealNoteRepository;
+import com.ceedpods.crmbuild.service.auditLogService.AuditLogService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -33,6 +35,7 @@ public class DealNoteService {
     private final DealNoteRepository dealNoteRepository;
     private final DealRepository dealRepository;
     private final DealNoteMapper dealNoteMapper;
+    private final AuditLogService auditLogService;
 
     // Pagination constants (following project convention)
     private static final int DEFAULT_PAGE = 0;
@@ -67,6 +70,9 @@ public class DealNoteService {
         // Save note
         DealNote savedDealNote = dealNoteRepository.save(dealNote);
         log.info("Deal note created successfully with ID: {}", savedDealNote.getId());
+
+        // Log audit event
+        auditLogService.logDealNoteCreated(authentication, savedDealNote.getId(), savedDealNote.getNoteTitle());
 
         return dealNoteMapper.toDTO(savedDealNote);
     }
@@ -135,6 +141,9 @@ public class DealNoteService {
         DealNote updatedDealNote = dealNoteRepository.save(dealNote);
         log.info("Deal note updated successfully with ID: {}", updatedDealNote.getId());
 
+        // Log audit event
+        auditLogService.logDealNoteUpdated(authentication, updatedDealNote.getId(), updatedDealNote.getNoteTitle());
+
         return dealNoteMapper.toDTO(updatedDealNote);
     }
 
@@ -153,9 +162,15 @@ public class DealNoteService {
                 .filter(n -> !n.isDeleted())
                 .orElseThrow(() -> new ResourceNotFoundException("Deal note not found with ID: " + id));
 
+        // Store note title before deletion for audit log
+        String noteTitle = dealNote.getNoteTitle();
+
         // Hard delete the note
         dealNoteRepository.delete(dealNote);
         log.info("Deal note deleted successfully with ID: {}", id);
+
+        // Log audit event
+        auditLogService.logDealNoteDeleted(authentication, id, noteTitle);
     }
 
     /**
@@ -249,8 +264,8 @@ public class DealNoteService {
         int pageNumber = (page != null && page >= 0) ? page : DEFAULT_PAGE;
         int pageSize = (size != null && size > 0) ? Math.min(size, MAX_SIZE) : DEFAULT_SIZE;
 
-        // Create pageable request
-        Pageable pageable = PageRequest.of(pageNumber, pageSize);
+        // Create pageable request with descending sort by createdAt
+        Pageable pageable = PageRequest.of(pageNumber, pageSize, Sort.by(Sort.Direction.DESC, "createdAt"));
 
         // Fetch paginated notes
         Page<DealNote> dealNotePage = dealNoteRepository.findByDeletedFalse(pageable);
@@ -290,8 +305,8 @@ public class DealNoteService {
         int pageNumber = (page != null && page >= 0) ? page : DEFAULT_PAGE;
         int pageSize = (size != null && size > 0) ? Math.min(size, MAX_SIZE) : DEFAULT_SIZE;
 
-        // Create pageable request
-        Pageable pageable = PageRequest.of(pageNumber, pageSize);
+        // Create pageable request with descending sort by createdAt
+        Pageable pageable = PageRequest.of(pageNumber, pageSize, Sort.by(Sort.Direction.DESC, "createdAt"));
 
         // Fetch paginated notes for the deal
         Page<DealNote> dealNotePage = dealNoteRepository.findByDealIdAndDeletedFalse(dealId, pageable);
@@ -333,8 +348,8 @@ public class DealNoteService {
         int pageNumber = (page != null && page >= 0) ? page : DEFAULT_PAGE;
         int pageSize = (size != null && size > 0) ? Math.min(size, MAX_SIZE) : DEFAULT_SIZE;
 
-        // Create pageable request
-        Pageable pageable = PageRequest.of(pageNumber, pageSize);
+        // Create pageable request with descending sort by createdAt
+        Pageable pageable = PageRequest.of(pageNumber, pageSize, Sort.by(Sort.Direction.DESC, "createdAt"));
 
         // Search notes with pagination
         Page<DealNote> dealNotePage = dealNoteRepository.searchDealNotes(searchTerm, pageable);
@@ -382,8 +397,8 @@ public class DealNoteService {
         int pageNumber = (page != null && page >= 0) ? page : DEFAULT_PAGE;
         int pageSize = (size != null && size > 0) ? Math.min(size, MAX_SIZE) : DEFAULT_SIZE;
 
-        // Create pageable request
-        Pageable pageable = PageRequest.of(pageNumber, pageSize);
+        // Create pageable request with descending sort by createdAt
+        Pageable pageable = PageRequest.of(pageNumber, pageSize, Sort.by(Sort.Direction.DESC, "createdAt"));
 
         // Search notes for the deal with pagination
         Page<DealNote> dealNotePage = dealNoteRepository.searchDealNotesByDealId(dealId, searchTerm, pageable);

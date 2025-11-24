@@ -11,6 +11,7 @@ import com.ceedpods.crmbuild.mapper.LeadMapper;
 import com.ceedpods.crmbuild.repository.DealRepository;
 import com.ceedpods.crmbuild.repository.LeadRepository;
 import com.ceedpods.crmbuild.security.CustomPermissionEvaluator;
+import com.ceedpods.crmbuild.service.auditLogService.AuditLogService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.Authentication;
@@ -28,6 +29,7 @@ public class LeadService {
     private final DealRepository dealRepository;
     private final LeadMapper leadMapper;
     private final CustomPermissionEvaluator permissionEvaluator;
+    private final AuditLogService auditLogService;
 
     /**
      * Get all leads (excluding soft-deleted)
@@ -105,6 +107,9 @@ public class LeadService {
         // - updatedBy: Current user's MongoDB ID from JWT token
         Lead savedLead = leadRepository.save(lead);
         log.info("Successfully created lead with UUID: {} by user: {}", savedLead.getId(), savedLead.getCreatedBy());
+
+        // Log audit event
+        auditLogService.logLeadCreated(authentication, savedLead.getId(), savedLead.getLeadName());
 
         return leadMapper.toDTO(savedLead);
     }
@@ -188,6 +193,9 @@ public class LeadService {
         Lead updatedLead = leadRepository.save(lead);
         log.info("Successfully updated lead with ID: {} by user: {}", updatedLead.getId(), updatedLead.getUpdatedBy());
 
+        // Log audit event
+        auditLogService.logLeadUpdated(authentication, updatedLead.getId(), updatedLead.getLeadName());
+
         return leadMapper.toDTO(updatedLead);
     }
 
@@ -208,10 +216,16 @@ public class LeadService {
         Lead lead = leadRepository.findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("Lead not found with ID: " + id));
 
+        // Store lead name before deletion for audit log
+        String leadName = lead.getLeadName();
+
         // Hard delete - actually remove from database
         leadRepository.delete(lead);
 
         log.info("Successfully deleted lead with ID: {} from database by admin user", id);
+
+        // Log audit event
+        auditLogService.logLeadDeleted(authentication, id, leadName);
     }
 
     /**

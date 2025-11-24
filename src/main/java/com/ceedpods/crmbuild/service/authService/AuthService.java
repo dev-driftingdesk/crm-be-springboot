@@ -18,6 +18,7 @@ import com.ceedpods.crmbuild.exception.ResourceNotFoundException;
 import com.ceedpods.crmbuild.mapper.UserMapper;
 import com.ceedpods.crmbuild.repository.PasswordResetTokenRepository;
 import com.ceedpods.crmbuild.repository.UserRepository;
+import com.ceedpods.crmbuild.service.auditLogService.AuditLogService;
 import com.ceedpods.crmbuild.service.emailService.EmailService;
 import com.ceedpods.crmbuild.service.keycloakService.KeycloakAdminService;
 import com.ceedpods.crmbuild.service.keycloakService.KeycloakService;
@@ -42,6 +43,7 @@ public class AuthService {
     private final PasswordResetTokenRepository passwordResetTokenRepository;
     private final EmailService emailService;
     private final PasswordResetRateLimiter rateLimiter;
+    private final AuditLogService auditLogService;
 
     @Value("${app.password-reset.token-expiration-minutes:15}")
     private int tokenExpirationMinutes;
@@ -207,13 +209,20 @@ public class AuthService {
 
             log.info("User logged in successfully: {}", user.getEmail());
 
+            // Log successful login audit event
+            auditLogService.logUserLogin(user.getEmail(), user.getId(), user.getEmail(), true);
+
             return authResponse;
 
         } catch (ResourceNotFoundException e) {
+            // Log failed login audit event (user not found)
+            auditLogService.logUserLogin(request.getEmail(), null, request.getEmail(), false);
             // Re-throw ResourceNotFoundException as-is
             throw e;
         } catch (Exception e) {
             log.error("Authentication failed for user {}: {}", request.getEmail(), e.getMessage());
+            // Log failed login audit event
+            auditLogService.logUserLogin(request.getEmail(), null, request.getEmail(), false);
             throw new AuthenticationException(AppConstants.Messages.LOGIN_FAILED);
         }
     }

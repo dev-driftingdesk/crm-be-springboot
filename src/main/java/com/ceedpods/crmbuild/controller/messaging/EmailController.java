@@ -9,6 +9,7 @@ import com.ceedpods.crmbuild.entity.messaging.Message;
 import com.ceedpods.crmbuild.mapper.MessageMapper;
 import com.ceedpods.crmbuild.repository.AgentCredentialRepository;
 import com.ceedpods.crmbuild.security.RequirePermission;
+import com.ceedpods.crmbuild.service.auditLogService.AuditLogService;
 import com.ceedpods.crmbuild.service.messaging.EncryptionService;
 import com.ceedpods.crmbuild.service.messaging.MessageDispatchService;
 import jakarta.validation.Valid;
@@ -34,6 +35,7 @@ public class EmailController {
     private final AgentCredentialRepository credentialRepository;
     private final EncryptionService encryptionService;
     private final MessageMapper messageMapper;
+    private final AuditLogService auditLogService;
 
     /**
      * Save SMTP Email credentials
@@ -67,10 +69,14 @@ public class EmailController {
                             .channel("EMAIL")
                             .build());
 
+            boolean isUpdate = credential.getEncryptedCredentials() != null && !credential.getEncryptedCredentials().isEmpty();
             credential.setEncryptedCredentials(encrypted);
             credential.setActive(true);
 
-            credentialRepository.save(credential);
+            AgentCredential savedCredential = credentialRepository.save(credential);
+
+            // Log audit event
+            auditLogService.logEmailCredentialsSaved(authentication, savedCredential.getId(), isUpdate);
 
             return ResponseEntity.status(HttpStatus.CREATED)
                     .body(ApiResponse.success("SMTP email credentials saved successfully", null));
@@ -101,6 +107,9 @@ public class EmailController {
                     request.getSubject(),
                     request.getMessageBody()
             );
+
+            // Log audit event
+            auditLogService.logEmailSent(authentication, message.getId(), request.getRecipientEmail(), request.getSubject());
 
             return ResponseEntity.status(HttpStatus.CREATED)
                     .body(ApiResponse.success("Email sent", messageMapper.toDTO(message)));

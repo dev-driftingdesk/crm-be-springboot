@@ -16,15 +16,15 @@ import java.util.List;
 public interface LeadNoteRepository extends MongoRepository<LeadNote, String> {
 
     /**
-     * Find all non-deleted lead notes
+     * Find all non-deleted lead notes, ordered by creation date (newest first)
      */
-    @Query("{ 'deleted': false }")
+    @Query(value = "{ 'deleted': false }", sort = "{ 'createdAt': -1 }")
     List<LeadNote> findByDeletedFalse();
 
     /**
-     * Find all non-deleted lead notes for a specific lead
+     * Find all non-deleted lead notes for a specific lead, ordered by creation date (newest first)
      */
-    @Query("{ 'leadId': ?0, 'deleted': false }")
+    @Query(value = "{ 'leadId': ?0, 'deleted': false }", sort = "{ 'createdAt': -1 }")
     List<LeadNote> findByLeadIdAndDeletedFalse(String leadId);
 
     /**
@@ -39,25 +39,25 @@ public interface LeadNoteRepository extends MongoRepository<LeadNote, String> {
     long countByLeadIdAndDeletedFalse(String leadId);
 
     /**
-     * Search lead notes by keyword (searches in note title and content)
+     * Search lead notes by keyword (searches in note title and content), ordered by creation date (newest first)
      */
-    @Query("{ '$or': [ " +
+    @Query(value = "{ '$or': [ " +
            "{ 'noteTitle': { '$regex': ?0, '$options': 'i' } }, " +
            "{ 'noteContent': { '$regex': ?0, '$options': 'i' } } " +
-           "], 'deleted': false }")
+           "], 'deleted': false }", sort = "{ 'createdAt': -1 }")
     List<LeadNote> searchLeadNotes(String searchTerm);
 
     /**
-     * Search lead notes by keyword for a specific lead
+     * Search lead notes by keyword for a specific lead, ordered by creation date (newest first)
      */
-    @Query("{ '$and': [ " +
+    @Query(value = "{ '$and': [ " +
            "{ 'leadId': ?0 }, " +
            "{ '$or': [ " +
            "{ 'noteTitle': { '$regex': ?1, '$options': 'i' } }, " +
            "{ 'noteContent': { '$regex': ?1, '$options': 'i' } } " +
            "] }, " +
            "{ 'deleted': false } " +
-           "]}")
+           "]}", sort = "{ 'createdAt': -1 }")
     List<LeadNote> searchLeadNotesByLeadId(String leadId, String searchTerm);
 
     // ==================== PAGINATED METHODS ====================
