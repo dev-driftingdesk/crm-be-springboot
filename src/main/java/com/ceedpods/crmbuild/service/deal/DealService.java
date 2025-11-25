@@ -1,6 +1,7 @@
 package com.ceedpods.crmbuild.service.deal;
 
 import com.ceedpods.crmbuild.dto.deal.DealDTO;
+import com.ceedpods.crmbuild.dto.deal.SalesRepAssignment;
 import com.ceedpods.crmbuild.dto.request.CreateDealRequest;
 import com.ceedpods.crmbuild.dto.request.UpdateDealRequest;
 import com.ceedpods.crmbuild.entity.deal.Deal;
@@ -22,6 +23,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -85,7 +87,10 @@ public class DealService {
 
         // Validate all sales rep IDs exist (if provided)
         if (request.getSalesReps() != null && !request.getSalesReps().isEmpty()) {
-            validateUsersExist(request.getSalesReps());
+            List<String> salesRepIds = request.getSalesReps().stream()
+                .map(SalesRepAssignment::getId)
+                .collect(Collectors.toList());
+            validateUsersExist(salesRepIds);
         }
 
         // Generate UUID for the deal _id
@@ -152,7 +157,10 @@ public class DealService {
 
         if (request.getSalesReps() != null) {
             if (!request.getSalesReps().isEmpty()) {
-                validateUsersExist(request.getSalesReps());
+                List<String> salesRepIds = request.getSalesReps().stream()
+                    .map(SalesRepAssignment::getId)
+                    .collect(Collectors.toList());
+                validateUsersExist(salesRepIds);
             }
             deal.setSalesReps(request.getSalesReps());
         }
