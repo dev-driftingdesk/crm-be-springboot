@@ -1,9 +1,11 @@
 package com.ceedpods.crmbuild.mapper;
 
 import com.ceedpods.crmbuild.dto.deal.DealDTO;
+import com.ceedpods.crmbuild.dto.deal.SalesRepAssignment;
 import com.ceedpods.crmbuild.entity.deal.Deal;
 import org.springframework.stereotype.Component;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -15,11 +17,22 @@ public class DealMapper {
             return null;
         }
 
+        // Create a copy of salesReps list to avoid shared references
+        List<SalesRepAssignment> salesRepsCopy = null;
+        if (entity.getSalesReps() != null) {
+            salesRepsCopy = entity.getSalesReps().stream()
+                .map(sr -> SalesRepAssignment.builder()
+                    .id(sr.getId())
+                    .position(sr.getPosition())
+                    .build())
+                .collect(Collectors.toList());
+        }
+
         DealDTO dto = DealDTO.builder()
             .id(entity.getId())
             .dealName(entity.getDealName())
-            .productIds(entity.getProductIds())
-            .salesReps(entity.getSalesReps())
+            .productIds(entity.getProductIds() != null ? new ArrayList<>(entity.getProductIds()) : null)
+            .salesReps(salesRepsCopy)
             .leadId(entity.getLeadId())
             .build();
 
@@ -40,10 +53,21 @@ public class DealMapper {
             return null;
         }
 
+        // Create a copy of salesReps list to avoid shared references
+        List<SalesRepAssignment> salesRepsCopy = null;
+        if (dto.getSalesReps() != null) {
+            salesRepsCopy = dto.getSalesReps().stream()
+                .map(sr -> SalesRepAssignment.builder()
+                    .id(sr.getId())
+                    .position(sr.getPosition())
+                    .build())
+                .collect(Collectors.toList());
+        }
+
         Deal entity = Deal.builder()
             .dealName(dto.getDealName())
-            .productIds(dto.getProductIds())
-            .salesReps(dto.getSalesReps())
+            .productIds(dto.getProductIds() != null ? new ArrayList<>(dto.getProductIds()) : null)
+            .salesReps(salesRepsCopy)
             .leadId(dto.getLeadId())
             .build();
 

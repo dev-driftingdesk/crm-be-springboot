@@ -22,6 +22,6 @@ public class DealDTO extends BaseDTO {
     private String id; // UUID as string (dealId)
     private String dealName;
     private List<String> productIds;
-    private List<String> salesReps;
+    private List<SalesRepAssignment> salesReps; // List of sales rep assignments with id and position
     private String leadId;
 }

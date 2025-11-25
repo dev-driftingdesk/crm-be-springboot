@@ -143,10 +143,10 @@ public class MongoIndexConfig {
                 .named("idx_deal_product_ids")
         );
 
-        // Index on salesReps for array field searches
+        // Index on salesReps.id for array field searches (salesReps is now an array of objects)
         dealIndexOps.ensureIndex(
-            new Index().on("salesReps", Sort.Direction.ASC)
-                .named("idx_deal_sales_reps")
+            new Index().on("salesReps.id", Sort.Direction.ASC)
+                .named("idx_deal_sales_reps_id")
         );
 
         log.info("Deal indexes created");

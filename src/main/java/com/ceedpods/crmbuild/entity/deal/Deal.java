@@ -1,6 +1,7 @@
 package com.ceedpods.crmbuild.entity.deal;
 
 import com.ceedpods.crmbuild.constants.AppConstants;
+import com.ceedpods.crmbuild.dto.deal.SalesRepAssignment;
 import com.ceedpods.crmbuild.entity.BaseEntity;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -27,7 +28,7 @@ public class Deal extends BaseEntity {
 
     private List<String> productIds; // List of product IDs (one or more)
 
-    private List<String> salesReps; // List of user IDs (sales representatives)
+    private List<SalesRepAssignment> salesReps; // List of sales rep assignments with id and position
 
     private String leadId; // Single lead ID (required)
 }

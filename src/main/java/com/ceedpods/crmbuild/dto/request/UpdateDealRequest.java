@@ -1,5 +1,7 @@
 package com.ceedpods.crmbuild.dto.request;
 
+import com.ceedpods.crmbuild.dto.deal.SalesRepAssignment;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -21,7 +23,8 @@ public class UpdateDealRequest {
 
     private List<String> productIds; // List of product IDs (one or more)
 
-    private List<String> salesReps; // List of user IDs
+    @Valid
+    private List<SalesRepAssignment> salesReps; // List of sales rep assignments with id and position
 
     @Size(max = 50, message = "Lead ID must not exceed 50 characters")
     private String leadId; // Single lead ID
