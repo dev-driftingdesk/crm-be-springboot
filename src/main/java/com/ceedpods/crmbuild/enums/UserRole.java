@@ -4,7 +4,8 @@ public enum UserRole {
     USER("User"),
     ADMIN("Admin"),
     MANAGER("Manager"),
-    SALES_EXECUTIVE("Sales Executive");
+    SALES_EXECUTIVE("Sales Executive"),
+    SALES_REP("Sales Rep");
 
     private final String displayName;
 
