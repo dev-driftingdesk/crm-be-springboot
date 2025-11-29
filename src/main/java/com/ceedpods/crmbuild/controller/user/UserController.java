@@ -119,17 +119,17 @@ public class UserController {
     }
     
     @GetMapping
-    @RequireAnyPermission({"USER_VIEW_ALL", "USER_VIEW_TEAM"})
+    @RequireAnyPermission({"ADMIN", "USER_VIEW_TEAM"})
     public ResponseEntity<ApiResponse<List<UserDTO>>> getUsers(
             @RequestParam(required = false) UserRole role,
             @RequestParam(required = false) String search,
             Authentication authentication) {
         try {
             String currentUserId = permissionEvaluator.getCurrentKeycloakId(authentication);
-            
+
             List<User> users;
-            
-            if (permissionEvaluator.hasPermission(authentication, "USER_VIEW_ALL")) {
+
+            if (permissionEvaluator.hasPermission(authentication, "ADMIN")) {
                 // Admin can see all users
                 if (role != null) {
                     users = userService.getUsersByRole(role);
@@ -141,32 +141,32 @@ public class UserController {
             } else {
                 // Manager can only see their team
                 users = userHierarchyService.getManagerReports(currentUserId);
-                
+
                 // Filter by role if specified
                 if (role != null) {
                     users = users.stream()
                         .filter(user -> user.getRole() == role)
                         .collect(Collectors.toList());
                 }
-                
+
                 // Filter by search if specified
                 if (search != null && !search.trim().isEmpty()) {
                     String searchLower = search.toLowerCase();
                     users = users.stream()
-                        .filter(user -> 
+                        .filter(user ->
                             user.getFirstName().toLowerCase().contains(searchLower) ||
                             user.getLastName().toLowerCase().contains(searchLower) ||
                             user.getEmail().toLowerCase().contains(searchLower))
                         .collect(Collectors.toList());
                 }
             }
-            
+
             List<UserDTO> userDTOs = users.stream()
                 .map(userMapper::toDTO)
                 .collect(Collectors.toList());
-            
+
             return ResponseEntity.ok(ApiResponse.success(userDTOs));
-            
+
         } catch (Exception e) {
             log.error("Error fetching users: {}", e.getMessage());
             return ResponseEntity.internalServerError()
