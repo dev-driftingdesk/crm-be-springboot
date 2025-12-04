@@ -126,35 +126,11 @@ public class PermissionService {
     }
     
     public List<String> getDefaultPermissionsForRole(UserRole role) {
-        // Define default permissions for each role
-        switch (role) {
-            case ADMIN:
-                // Admins get all permissions by default (handled separately)
-                return Arrays.asList();
-                
-            case MANAGER:
-                return Arrays.asList(
-                    "ANALYTICS_TEAM",
-                    "USER_VIEW_TEAM",
-                    "LEAD_VIEW_TEAM",
-                    "CUSTOMER_VIEW_TEAM",
-                    "CALL_RECORDINGS_VIEW"
-                );
-                
-            case SALES_EXECUTIVE:
-                return Arrays.asList(
-                    "ANALYTICS_PERSONAL",
-                    "LEAD_CREATE",
-                    "LEAD_EDIT",
-                    "CUSTOMER_CREATE",
-                    "CUSTOMER_EDIT",
-                    "COMMUNICATION_SEND_EMAIL",
-                    "SALES_CREATE_OPPORTUNITY"
-                );
-                
-            default:
-                return Arrays.asList();
-        }
+        // Default permissions are now handled by RBAC role matrix
+        // This method is kept for backward compatibility but will return empty
+        // All permissions are managed through UserRolePermission entities
+        log.info("Default permissions for role {} are now managed by RBAC system", role);
+        return Arrays.asList();
     }
     
     @Transactional

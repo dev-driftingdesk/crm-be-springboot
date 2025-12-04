@@ -66,8 +66,8 @@ public class AdminUserInitializer {
             log.info("Step 1: Creating all user roles in Keycloak...");
             keycloakAdminService.createRealmRole(AppConstants.Keycloak.ROLE_ADMIN, AppConstants.Keycloak.ROLE_ADMIN_DESC);
             keycloakAdminService.createRealmRole(AppConstants.Keycloak.ROLE_MANAGER, AppConstants.Keycloak.ROLE_MANAGER_DESC);
-            keycloakAdminService.createRealmRole(AppConstants.Keycloak.ROLE_SALES_REP, AppConstants.Keycloak.ROLE_SALES_REP_DESC);
-            keycloakAdminService.createRealmRole(AppConstants.Keycloak.ROLE_USER, AppConstants.Keycloak.ROLE_USER_DESC);
+            keycloakAdminService.createRealmRole(AppConstants.Keycloak.ROLE_SALES_REP, AppConstants.Keycloak.ROLE_USER_DESC);
+            keycloakAdminService.createRealmRole(AppConstants.Keycloak.ROLE_SALES_REP, AppConstants.Keycloak.ROLE_USER_DESC);
             log.info("✓ All roles created: ADMIN, MANAGER, SALES_REP, USER");
 
             // Step 2: Create admin user in Keycloak or get existing user

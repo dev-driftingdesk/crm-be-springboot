@@ -73,7 +73,7 @@ public class AuthService {
             String keycloakId = keycloakService.registerUser(request);
 
             // Assign USER role to the user in Keycloak
-            keycloakAdminService.assignRealmRoleToUser(keycloakId, AppConstants.Keycloak.ROLE_USER);
+            keycloakAdminService.assignRealmRoleToUser(keycloakId, AppConstants.Keycloak.ROLE_SALES_REP);
 
             // Save user in MongoDB with USER role (admin can only create regular users)
             User user = User.builder()
@@ -81,7 +81,7 @@ public class AuthService {
                 .email(request.getEmail())
                 .firstName(request.getFirstName())
                 .lastName(request.getLastName())
-                .role(UserRole.USER)
+                .role(UserRole.SALES_REP)
                 .enabled(true)
                 .build();
 

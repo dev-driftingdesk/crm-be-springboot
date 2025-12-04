@@ -39,6 +39,8 @@ public class User extends BaseEntity {
     private UserRole role;
     private boolean enabled = true;
     private boolean emailVerified = false;
+    
+    @Deprecated // Individual permissions are now handled by RBAC role-based system
     private List<String> permissions;
     // Profile information
     private String phoneNumber;
@@ -75,6 +77,21 @@ public class User extends BaseEntity {
     
     public boolean isAdmin() {
         return role == UserRole.ADMIN;
+    }
+    
+    public boolean isSalesRep() {
+        return role == UserRole.SALES_REP;
+    }
+    
+    public boolean isViewer() {
+        return role == UserRole.VIEWER;
+    }
+    
+    /**
+     * Check if this user can manage users of the target role
+     */
+    public boolean canManageRole(UserRole targetRole) {
+        return this.role.canManage(targetRole);
     }
     
     public void lockAccount() {
