@@ -87,15 +87,19 @@ public class PermissionController {
     @GetMapping("/category/{category}")
     @RequirePermission("USER_MANAGE_PERMISSIONS")
     public ResponseEntity<ApiResponse<List<PermissionDTO>>> getPermissionsByCategory(
-            @PathVariable PermissionCategory category) {
+            @PathVariable String category) {
         try {
             List<PermissionEntity> permissions = permissionService.getPermissionsByCategory(category);
             List<PermissionDTO> permissionDTOs = permissions.stream()
                 .map(permissionMapper::toDTO)
                 .collect(Collectors.toList());
-            
+
             return ResponseEntity.ok(ApiResponse.success(permissionDTOs));
-            
+
+        } catch (IllegalArgumentException e) {
+            log.warn("Invalid category requested: {}", category);
+            return ResponseEntity.badRequest()
+                .body(ApiResponse.error(e.getMessage()));
         } catch (Exception e) {
             log.error("Error fetching permissions for category {}: {}", category, e.getMessage());
             return ResponseEntity.internalServerError()

@@ -1,6 +1,5 @@
 package com.ceedpods.crmbuild.dto;
 
-import com.ceedpods.crmbuild.enums.PermissionCategory;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -18,7 +17,7 @@ public class PermissionDTO extends BaseDTO {
     private String permissionCode;
     private String displayName;
     private String description;
-    private PermissionCategory category;
+    private String category;
     private boolean assignable;
     private boolean active;
     
