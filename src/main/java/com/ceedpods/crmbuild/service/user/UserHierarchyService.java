@@ -34,7 +34,7 @@ public class UserHierarchyService {
         }
         
         User salesRep = userService.findByKeycloakId(salesRepId);
-        if (salesRep == null || salesRep.getRole() != UserRole.SALES_EXECUTIVE) {
+        if (salesRep == null || salesRep.getRole() != UserRole.SALES_REP) {
             throw new RuntimeException("Invalid sales rep user");
         }
         
@@ -225,7 +225,7 @@ public class UserHierarchyService {
     }
     
     public List<User> getUnassignedSalesReps() {
-        List<User> allSalesReps = userService.getUsersByRole(UserRole.SALES_EXECUTIVE);
+        List<User> allSalesReps = userService.getUsersByRole(UserRole.SALES_REP);
         List<String> assignedSalesRepIds = userRelationshipRepository
             .findAll()
             .stream()

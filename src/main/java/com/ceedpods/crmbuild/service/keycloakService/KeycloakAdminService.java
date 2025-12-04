@@ -47,8 +47,8 @@ public class KeycloakAdminService {
         log.info("Ensuring all required roles exist in Keycloak...");
         createRealmRole(AppConstants.Keycloak.ROLE_ADMIN, AppConstants.Keycloak.ROLE_ADMIN_DESC);
         createRealmRole(AppConstants.Keycloak.ROLE_MANAGER, AppConstants.Keycloak.ROLE_MANAGER_DESC);
-        createRealmRole(AppConstants.Keycloak.ROLE_SALES_REP, AppConstants.Keycloak.ROLE_SALES_REP_DESC);
-        createRealmRole(AppConstants.Keycloak.ROLE_USER, AppConstants.Keycloak.ROLE_USER_DESC);
+        createRealmRole(AppConstants.Keycloak.ROLE_SALES_REP, AppConstants.Keycloak.ROLE_USER_DESC);
+        createRealmRole(AppConstants.Keycloak.ROLE_SALES_REP, AppConstants.Keycloak.ROLE_USER_DESC);
         log.info("✓ All roles ensured: ADMIN, MANAGER, SALES_REP, USER");
     }
 

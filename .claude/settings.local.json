@@ -15,7 +15,9 @@
       "Bash(mvn clean:*)",
       "Bash(sed:*)",
       "Bash(curl:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(rm:*)",
+      "Read(//Users/amithviduranga/Downloads/**)"
     ],
     "deny": [],
     "ask": []

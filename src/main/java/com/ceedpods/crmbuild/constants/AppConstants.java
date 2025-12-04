@@ -34,13 +34,13 @@ public final class AppConstants {
         public static final String ROLE_ADMIN = "ADMIN";
         public static final String ROLE_MANAGER = "MANAGER";
         public static final String ROLE_SALES_REP = "SALES_REP";
-        public static final String ROLE_USER = "USER";
+        public static final String ROLE_VIEWER = "VIEWER";
 
         // Role descriptions
-        public static final String ROLE_ADMIN_DESC = "Administrator role with full access";
-        public static final String ROLE_MANAGER_DESC = "Manager role with team management access";
-        public static final String ROLE_SALES_REP_DESC = "Sales Representative role with sales access";
-        public static final String ROLE_USER_DESC = "Regular user role with limited access";
+        public static final String ROLE_ADMIN_DESC = "Administrator role with full system access and configuration";
+        public static final String ROLE_MANAGER_DESC = "Manager role with team oversight, lead distribution, and performance monitoring";
+        public static final String ROLE_USER_DESC = "Sales Representative role for daily sales activities and own data management";
+        public static final String ROLE_VIEWER_DESC = "Read-only role for reports, dashboards, and observation";
 
         // Helper methods to build dynamic paths
         public static String getRealmPath(String realmName) {
@@ -123,6 +123,7 @@ public final class AppConstants {
         public static final String COLLECTION_ROLES = "roles";
         public static final String COLLECTION_PERMISSIONS = "permissions";
         public static final String COLLECTION_USER_PERMISSIONS = "user_permissions";
+        public static final String COLLECTION_USER_ROLE_PERMISSIONS = "user_role_permissions";
         public static final String COLLECTION_USER_RELATIONSHIPS = "user_relationships";
         public static final String COLLECTION_USER_INVITATIONS = "user_invitations";
         public static final String COLLECTION_AUDIT_LOGS = "audit_logs";

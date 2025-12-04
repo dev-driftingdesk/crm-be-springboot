@@ -28,7 +28,7 @@ public class RoleService {
     public void initializeSystemRoles() {
         log.info("Initializing system roles...");
         
-        // Define the three system roles
+        // Define the four system roles
         createSystemRoleIfNotExists(UserRole.ADMIN, "Administrator", 
             "Full system access with all administrative privileges", 
             getAllPermissionsForAdmin());
@@ -37,9 +37,13 @@ public class RoleService {
             "Team management access with oversight capabilities",
             getDefaultPermissionsForManager());
             
-        createSystemRoleIfNotExists(UserRole.SALES_EXECUTIVE, "Sales Representative",
+        createSystemRoleIfNotExists(UserRole.SALES_REP, "Sales Representative",
             "Sales-focused access for customer and lead management",
             getDefaultPermissionsForSalesRep());
+            
+        createSystemRoleIfNotExists(UserRole.VIEWER, "Viewer",
+            "Read-only access with limited viewing permissions as permitted by admin",
+            getDefaultPermissionsForViewer());
         
         log.info("System roles initialization completed");
     }
@@ -106,6 +110,44 @@ public class RoleService {
             "DEAL_CREATE",
             "DEAL_EDIT",
             "DEAL_VIEW_PERSONAL"
+        );
+    }
+    
+    private List<String> getDefaultPermissionsForViewer() {
+        return Arrays.asList(
+            // Authentication & Account - Basic access
+            "AUTH_LOGIN_MOBILE",
+            "AUTH_LOGIN_WEB", 
+            "AUTH_CHANGE_PASSWORD",
+            "AUTH_UPDATE_PROFILE",
+            "AUTH_ENABLE_MFA",
+            "AUTH_VIEW_LOGIN_HISTORY",
+            // Data Access - As permitted
+            "LEAD_VIEW",
+            "DEAL_VIEW", 
+            "LEAD_VIEW_HISTORY",
+            "DEAL_VIEW_HISTORY",
+            // Analytics - As permitted
+            "ANALYTICS_VIEW_INDIVIDUAL_DASHBOARD",
+            "ANALYTICS_VIEW_LEADERBOARDS",
+            "ANALYTICS_VIEW_PERFORMANCE",
+            "ANALYTICS_VIEW_PIPELINE_HEALTH",
+            "ANALYTICS_VIEW_ACTIVITY",
+            "ANALYTICS_VIEW_TRENDS",
+            // Team hierarchy - Own only  
+            "TEAM_VIEW_HIERARCHY",
+            // Products - View only
+            "PRODUCT_VIEW_CATALOG",
+            // Calendar - Own only
+            "CALENDAR_VIEW_OWN",
+            "CALENDAR_SET_AVAILABILITY",
+            // Gamification - View only
+            "GAMIFICATION_VIEW_LEADERBOARDS", 
+            "GAMIFICATION_VIEW_ACHIEVEMENTS",
+            // Notifications - Own scope
+            "NOTIFICATION_RECEIVE_PUSH",
+            "NOTIFICATION_CONFIGURE_PREFERENCES",
+            "NOTIFICATION_VIEW_HISTORY"
         );
     }
     

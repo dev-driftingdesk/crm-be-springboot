@@ -72,7 +72,7 @@ public class KeycloakRealmInitializer {
                 // Step 4: Create roles
                 log.info("Step 4: Creating roles in realm '{}'...", keycloakRealmName);
                 keycloakRealmService.createRealmRole(keycloakRealmName, AppConstants.Keycloak.ROLE_ADMIN, AppConstants.Keycloak.ROLE_ADMIN_DESC);
-                keycloakRealmService.createRealmRole(keycloakRealmName, AppConstants.Keycloak.ROLE_USER, AppConstants.Keycloak.ROLE_USER_DESC);
+                keycloakRealmService.createRealmRole(keycloakRealmName, AppConstants.Keycloak.ROLE_SALES_REP, AppConstants.Keycloak.ROLE_USER_DESC);
 
                 log.info("╔════════════════════════════════════════════════════════════╗");
                 log.info("║     ✓✓✓ REALM CREATED SUCCESSFULLY! ✓✓✓                   ║");
@@ -88,7 +88,7 @@ public class KeycloakRealmInitializer {
                 // Ensure roles exist even if realm exists
                 log.info("Ensuring roles exist in realm '{}'...", keycloakRealmName);
                 keycloakRealmService.createRealmRole(keycloakRealmName, AppConstants.Keycloak.ROLE_ADMIN, AppConstants.Keycloak.ROLE_ADMIN_DESC);
-                keycloakRealmService.createRealmRole(keycloakRealmName, AppConstants.Keycloak.ROLE_USER, AppConstants.Keycloak.ROLE_USER_DESC);
+                keycloakRealmService.createRealmRole(keycloakRealmName, AppConstants.Keycloak.ROLE_SALES_REP, AppConstants.Keycloak.ROLE_USER_DESC);
 
                 log.info("╔════════════════════════════════════════════════════════════╗");
                 log.info("║     ✓ REALM VERIFIED                                       ║");
