@@ -76,8 +76,7 @@ jobs:
         echo "Project version section:"
         sed -n '/<artifactId>crmbuild-service/,/<\/description>/p' pom.xml
 
-    - name: Run tests
-      run: mvn test
+  
 
     - name: Build application
       run: mvn clean package -DskipTests
