@@ -1,7 +1,6 @@
 package com.ceedpods.crmbuild.repository;
 
 import com.ceedpods.crmbuild.entity.PermissionEntity;
-import com.ceedpods.crmbuild.enums.PermissionCategory;
 import org.springframework.data.mongodb.repository.MongoRepository;
 import org.springframework.data.mongodb.repository.Query;
 import org.springframework.stereotype.Repository;
@@ -14,7 +13,7 @@ public interface PermissionRepository extends MongoRepository<PermissionEntity, 
     
     Optional<PermissionEntity> findByPermissionCode(String permissionCode);
     
-    List<PermissionEntity> findByCategory(PermissionCategory category);
+    List<PermissionEntity> findByCategory(String category);
     
     List<PermissionEntity> findByAssignableTrue();
     

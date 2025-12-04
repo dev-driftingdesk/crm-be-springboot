@@ -36,7 +36,7 @@ public class PermissionService {
                     .permissionCode(permission.getCode())
                     .displayName(permission.getDescription())
                     .description(permission.getDescription())
-                    .category(permission.getCategory())
+                    .category(permission.getCategory().name())
                     .assignable(permission.isAssignable())
                     .active(true)
                     .build();
@@ -64,7 +64,9 @@ public class PermissionService {
         return getAssignablePermissions();
     }
     
-    public List<PermissionEntity> getPermissionsByCategory(PermissionCategory category) {
+    public List<PermissionEntity> getPermissionsByCategory(String category) {
+        // Validate category is a valid enum value
+        validateCategory(category);
         return permissionRepository.findByCategory(category);
     }
     
@@ -157,22 +159,60 @@ public class PermissionService {
     
     @Transactional
     public PermissionEntity createPermission(PermissionEntity permission, String createdBy) {
+        // Validate category is a valid enum value
+        validateCategory(permission.getCategory());
         // Audit fields automatically handled by Spring Data Auditing
         return permissionRepository.save(permission);
+    }
+
+    /**
+     * Validates that the category string is a valid PermissionCategory enum value.
+     * @param category the category string to validate
+     * @throws IllegalArgumentException if the category is not valid
+     */
+    private void validateCategory(String category) {
+        if (category == null || category.trim().isEmpty()) {
+            throw new IllegalArgumentException("Permission category cannot be null or empty");
+        }
+        try {
+            PermissionCategory.valueOf(category);
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException("Invalid permission category: " + category);
+        }
+    }
+
+    /**
+     * Checks if a category string is a valid PermissionCategory enum value.
+     * @param category the category string to check
+     * @return true if valid, false otherwise
+     */
+    public boolean isValidCategory(String category) {
+        if (category == null || category.trim().isEmpty()) {
+            return false;
+        }
+        try {
+            PermissionCategory.valueOf(category);
+            return true;
+        } catch (IllegalArgumentException e) {
+            return false;
+        }
     }
     
     @Transactional
     public PermissionEntity updatePermission(String permissionId, PermissionEntity updatedPermission, String updatedBy) {
+        // Validate category is a valid enum value
+        validateCategory(updatedPermission.getCategory());
+
         PermissionEntity existingPermission = permissionRepository.findById(permissionId)
             .orElseThrow(() -> new RuntimeException("Permission not found: " + permissionId));
-        
+
         existingPermission.setDisplayName(updatedPermission.getDisplayName());
         existingPermission.setDescription(updatedPermission.getDescription());
         existingPermission.setCategory(updatedPermission.getCategory());
         existingPermission.setAssignable(updatedPermission.isAssignable());
         existingPermission.setActive(updatedPermission.isActive());
         // Audit fields automatically handled by Spring Data Auditing
-        
+
         return permissionRepository.save(existingPermission);
     }
     

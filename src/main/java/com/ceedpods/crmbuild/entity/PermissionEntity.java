@@ -1,7 +1,6 @@
 package com.ceedpods.crmbuild.entity;
 
 import com.ceedpods.crmbuild.constants.AppConstants;
-import com.ceedpods.crmbuild.enums.PermissionCategory;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -26,7 +25,7 @@ public class PermissionEntity extends BaseEntity {
     private String permissionCode;
     private String displayName;
     private String description;
-    private PermissionCategory category;
+    private String category;
     private boolean assignable;
     private boolean active = true;
 }
