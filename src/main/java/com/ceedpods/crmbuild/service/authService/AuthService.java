@@ -82,6 +82,7 @@ public class AuthService {
                 .firstName(request.getFirstName())
                 .lastName(request.getLastName())
                 .role(UserRole.SALES_REP)
+                .profilePicture(request.getProfilePicture())
                 .enabled(true)
                 .build();
 
@@ -134,6 +135,7 @@ public class AuthService {
                 .firstName(request.getFirstName())
                 .lastName(request.getLastName())
                 .role(UserRole.ADMIN)
+                .profilePicture(request.getProfilePicture())
                 .enabled(true)
                 .build();
 

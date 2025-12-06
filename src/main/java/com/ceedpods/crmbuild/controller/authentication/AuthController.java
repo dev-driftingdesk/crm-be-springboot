@@ -27,10 +27,14 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.HashMap;
 import java.util.Map;
+
+import com.ceedpods.crmbuild.util.ImageUtils;
 
 @RestController
 @RequestMapping("/auth")
@@ -51,7 +55,7 @@ AuthController {
      */
     @Operation(
         summary = "Create Admin User",
-        description = "Creates a new admin user in the system. This endpoint should only be used during initial system setup or by existing super admins.",
+        description = "Creates a new admin user in the system with a profile picture. This endpoint accepts multipart/form-data. This endpoint should only be used during initial system setup or by existing super admins.",
         security = @SecurityRequirement(name = "Bearer Authentication")
     )
     @ApiResponses(value = {
@@ -70,7 +74,8 @@ AuthController {
                         "firstName": "John",
                         "lastName": "Doe",
                         "role": "ADMIN",
-                        "enabled": true
+                        "enabled": true,
+                        "profilePicture": "data:image/png;base64,..."
                       }
                     }
                     """)
@@ -89,25 +94,42 @@ AuthController {
             )
         )
     })
-    @PostMapping("/admin/create-admin")
+    @PostMapping(value = "/admin/create-admin", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<Map<String, Object>> createAdminUser(
-            @io.swagger.v3.oas.annotations.parameters.RequestBody(
-                description = "Admin user registration details",
-                required = true,
-                content = @Content(
-                    schema = @Schema(implementation = RegisterRequest.class),
-                    examples = @ExampleObject(value = """
-                        {
-                          "email": "admin@example.com",
-                          "firstName": "John",
-                          "lastName": "Doe",
-                          "password": "SecurePassword123!"
-                        }
-                        """)
-                )
-            )
-            @Valid @RequestBody RegisterRequest request) {
+            @Parameter(description = "Email address", required = true)
+            @RequestParam("email") String email,
+
+            @Parameter(description = "Password (min 6 characters)", required = true)
+            @RequestParam("password") String password,
+
+            @Parameter(description = "Confirm password", required = true)
+            @RequestParam("confirmPassword") String confirmPassword,
+
+            @Parameter(description = "First name", required = true)
+            @RequestParam("firstName") String firstName,
+
+            @Parameter(description = "Last name", required = true)
+            @RequestParam("lastName") String lastName,
+
+            @Parameter(description = "Profile picture (JPEG, PNG, GIF, WebP - max 5MB)", required = false)
+            @RequestParam(value = "profilePicture", required = false) MultipartFile profilePicture) {
         try {
+            // Convert uploaded file to Base64 (if provided)
+            String profilePictureBase64 = null;
+            if (profilePicture != null && !profilePicture.isEmpty()) {
+                profilePictureBase64 = ImageUtils.convertToBase64(profilePicture);
+            }
+
+            // Build the RegisterRequest
+            RegisterRequest request = RegisterRequest.builder()
+                .email(email)
+                .password(password)
+                .confirmPassword(confirmPassword)
+                .firstName(firstName)
+                .lastName(lastName)
+                .profilePicture(profilePictureBase64)
+                .build();
+
             UserDTO adminUser = authService.registerAdminUser(request);
 
             Map<String, Object> response = new HashMap<>();
@@ -115,6 +137,10 @@ AuthController {
             response.put("admin", adminUser);
 
             return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        } catch (BadRequestException e) {
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("error", e.getMessage());
+            return ResponseEntity.badRequest().body(errorResponse);
         } catch (Exception e) {
             Map<String, Object> errorResponse = new HashMap<>();
             errorResponse.put("error", "Failed to create admin user: " + e.getMessage());

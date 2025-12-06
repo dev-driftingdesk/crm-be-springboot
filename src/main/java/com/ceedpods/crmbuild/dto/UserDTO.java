@@ -52,6 +52,9 @@ public class UserDTO extends BaseDTO {
     private String department;
     private String territory;
     private String jobTitle;
+
+    @Schema(description = "User's profile picture as Base64 encoded string", example = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUA...")
+    private String profilePicture;
     
     // Manager hierarchy
     private String managerId;

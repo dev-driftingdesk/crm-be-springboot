@@ -19,7 +19,7 @@ import java.math.BigDecimal;
 @AllArgsConstructor
 @EqualsAndHashCode(callSuper = true)
 @JsonPropertyOrder({
-    "id", "productName", "createdUserName", "inDealCount", "basePrice", "totalSales", "revenue",
+    "id", "productName", "createdUserName", "createdUserProfilePicture", "inDealCount", "basePrice", "totalSales", "revenue",
     "productDescription", "productSubDescription", "productValue", "productStatus",
     "createdAt", "updatedAt", "createdBy", "updatedBy", "deleted", "deletedAt", "deletedBy"
 })
@@ -42,6 +42,10 @@ public class ProductDTO extends BaseDTO {
     @Schema(description = "Full name of the user who created this product", example = "John Doe")
     @JsonInclude(JsonInclude.Include.NON_NULL)
     private String createdUserName;
+
+    @Schema(description = "Profile picture of the user who created this product (Base64 encoded)", example = "data:image/png;base64,iVBORw0KGgo...")
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    private String createdUserProfilePicture;
 
     @Schema(description = "Number of deals that include this product", example = "15")
     @JsonInclude(JsonInclude.Include.NON_NULL)
