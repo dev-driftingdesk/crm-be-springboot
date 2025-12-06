@@ -54,9 +54,13 @@ public class ProductController {
     }
 
     /**
-     * Get all products
+     * Get all products with enhanced summary information
      */
-    @Operation(summary = "Get All Products", description = "Retrieves all products from the catalog")
+    @Operation(
+        summary = "Get All Products",
+        description = "Retrieves all products from the catalog with enhanced summary information including: " +
+                      "Product Name, Created User Name, In Deal Count, Base Price, Total Sales, and Revenue"
+    )
     @GetMapping
     @RequirePermission("PRODUCT_VIEW_ALL")
     public ResponseEntity<ApiResponse<List<ProductDTO>>> getAllProducts() {
