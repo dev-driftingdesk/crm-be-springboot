@@ -17,7 +17,7 @@ public class RegisterRequest {
     @NotBlank(message = "Email is required")
     @Email(message = "Email should be valid")
     private String email;
-    
+
     @NotBlank(message = "Password is required")
     @Size(min = 6, message = "Password must be at least 6 characters")
     private String password;
@@ -30,4 +30,8 @@ public class RegisterRequest {
 
     @NotBlank(message = "Last name is required")
     private String lastName;
+
+    // Profile picture is handled separately as MultipartFile in controller
+    // and stored as Base64 string in the database
+    private String profilePicture;
 }

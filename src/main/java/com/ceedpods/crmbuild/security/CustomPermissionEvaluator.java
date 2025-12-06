@@ -30,6 +30,10 @@ public class CustomPermissionEvaluator {
      * Check if user has a permission (uses PermissionScope.OWN as default required scope)
      */
     public boolean hasPermission(Authentication authentication, String permissionCode) {
+        // Handle "ADMIN" as a special role check, not a permission
+        if ("ADMIN".equals(permissionCode)) {
+            return isAdmin(authentication);
+        }
         return hasPermissionWithScope(authentication, permissionCode, PermissionScope.OWN);
     }
     
@@ -82,9 +86,15 @@ public class CustomPermissionEvaluator {
         if (permissionCodes == null || permissionCodes.length == 0) {
             return false;
         }
-        
+
         return Arrays.stream(permissionCodes)
-            .anyMatch(permission -> hasPermission(authentication, permission));
+            .anyMatch(permissionOrRole -> {
+                // Handle "ADMIN" as a special role check, not a permission
+                if ("ADMIN".equals(permissionOrRole)) {
+                    return isAdmin(authentication);
+                }
+                return hasPermission(authentication, permissionOrRole);
+            });
     }
     
     /**

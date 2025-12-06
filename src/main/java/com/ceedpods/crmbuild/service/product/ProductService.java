@@ -4,10 +4,13 @@ import com.ceedpods.crmbuild.dto.product.ProductDTO;
 import com.ceedpods.crmbuild.dto.request.CreateProductRequest;
 import com.ceedpods.crmbuild.dto.request.UpdateProductRequest;
 import com.ceedpods.crmbuild.entity.product.Product;
+import com.ceedpods.crmbuild.entity.user.User;
 import com.ceedpods.crmbuild.exception.BadRequestException;
 import com.ceedpods.crmbuild.exception.ResourceNotFoundException;
 import com.ceedpods.crmbuild.mapper.ProductMapper;
+import com.ceedpods.crmbuild.repository.DealRepository;
 import com.ceedpods.crmbuild.repository.ProductRepository;
+import com.ceedpods.crmbuild.repository.UserRepository;
 import com.ceedpods.crmbuild.service.auditLogService.AuditLogService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -16,7 +19,11 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -26,25 +33,125 @@ public class ProductService {
     private final ProductRepository productRepository;
     private final ProductMapper productMapper;
     private final AuditLogService auditLogService;
+    private final DealRepository dealRepository;
+    private final UserRepository userRepository;
 
     /**
-     * Get all products (excluding soft-deleted)
+     * Get all products with enhanced summary information (excluding soft-deleted)
+     * Includes: Product Name, Created User Name, Created User Profile Picture, In Deal Count, Base Price, Total Sales, Revenue
      */
     public List<ProductDTO> getAllProducts() {
-        log.info("Fetching all products");
+        log.info("Fetching all products with enhanced summary");
+
         List<Product> products = productRepository.findByDeletedFalse();
-        return productMapper.toDTO(products);
+
+        if (products.isEmpty()) {
+            log.info("No products found");
+            return List.of();
+        }
+
+        // Collect all unique createdBy (MongoDB User ID) values to batch fetch users
+        Set<String> creatorUserIds = products.stream()
+            .map(Product::getCreatedBy)
+            .filter(id -> id != null && !id.isEmpty() && !id.equals("system"))
+            .collect(Collectors.toSet());
+
+        // Batch fetch users by MongoDB ID and create a map for quick lookup (stores full User object for name and profile picture)
+        Map<String, User> userIdToUser = creatorUserIds.stream()
+            .map(userId -> userRepository.findById(userId).orElse(null))
+            .filter(user -> user != null)
+            .collect(Collectors.toMap(
+                User::getId,
+                user -> user,
+                (existing, replacement) -> existing // Handle duplicates
+            ));
+
+        // Transform products to enhanced ProductDTO
+        return products.stream()
+            .map(product -> mapToEnhancedProductDTO(product, userIdToUser))
+            .collect(Collectors.toList());
     }
 
     /**
-     * Get product by ID
+     * Maps a Product entity to ProductDTO with calculated statistics
+     */
+    private ProductDTO mapToEnhancedProductDTO(Product product, Map<String, User> userIdToUser) {
+        // Get the created user info from the map (createdBy stores MongoDB User ID)
+        String createdUserName = null;
+        String createdUserProfilePicture = null;
+        if (product.getCreatedBy() != null && !product.getCreatedBy().equals("system")) {
+            User createdUser = userIdToUser.get(product.getCreatedBy());
+            if (createdUser != null) {
+                createdUserName = createdUser.getFullName();
+                createdUserProfilePicture = createdUser.getProfilePicture();
+            } else {
+                createdUserName = "Unknown User";
+            }
+        } else if ("system".equals(product.getCreatedBy())) {
+            createdUserName = "System";
+        }
+
+        // Count deals containing this product
+        long inDealCount = dealRepository.countByProductIdAndDeletedFalse(product.getId());
+
+        // Base price is the product value
+        BigDecimal basePrice = product.getProductValue() != null
+            ? product.getProductValue()
+            : BigDecimal.ZERO;
+
+        // Total sales equals the deal count
+        long totalSales = inDealCount;
+
+        // Revenue = basePrice × totalSales
+        BigDecimal revenue = basePrice.multiply(BigDecimal.valueOf(totalSales));
+
+        // Build the enhanced DTO
+        ProductDTO dto = ProductDTO.builder()
+            .id(product.getId())
+            .productName(product.getProductName())
+            .productDescription(product.getProductDescription())
+            .productSubDescription(product.getProductSubDescription())
+            .productValue(product.getProductValue())
+            .productStatus(product.getProductStatus())
+            // Enhanced fields
+            .createdUserName(createdUserName)
+            .createdUserProfilePicture(createdUserProfilePicture)
+            .inDealCount(inDealCount)
+            .basePrice(basePrice)
+            .totalSales(totalSales)
+            .revenue(revenue)
+            .build();
+
+        // Set audit fields from base entity
+        dto.setCreatedAt(product.getCreatedAt());
+        dto.setUpdatedAt(product.getUpdatedAt());
+        dto.setCreatedBy(product.getCreatedBy());
+        dto.setUpdatedBy(product.getUpdatedBy());
+        dto.setDeleted(product.isDeleted());
+        dto.setDeletedAt(product.getDeletedAt());
+        dto.setDeletedBy(product.getDeletedBy());
+
+        return dto;
+    }
+
+    /**
+     * Get product by ID with enhanced summary information
+     * Includes: Product Name, Created User Name, Created User Profile Picture, In Deal Count, Base Price, Total Sales, Revenue
      */
     public ProductDTO getProductById(String id) {
         log.info("Fetching product with ID: {}", id);
         Product product = productRepository.findById(id)
             .filter(p -> !p.isDeleted())
             .orElseThrow(() -> new ResourceNotFoundException("Product not found with ID: " + id));
-        return productMapper.toDTO(product);
+
+        // Fetch the created user for enhanced fields
+        Map<String, User> userIdToUser = new java.util.HashMap<>();
+        if (product.getCreatedBy() != null && !product.getCreatedBy().equals("system")) {
+            userRepository.findById(product.getCreatedBy())
+                .ifPresent(user -> userIdToUser.put(user.getId(), user));
+        }
+
+        return mapToEnhancedProductDTO(product, userIdToUser);
     }
 
 
@@ -145,12 +252,37 @@ public class ProductService {
     }
 
     /**
-     * Search products by keyword
+     * Search products by keyword with enhanced summary information
+     * Includes: Product Name, Created User Name, Created User Profile Picture, In Deal Count, Base Price, Total Sales, Revenue
      */
     public List<ProductDTO> searchProducts(String searchTerm) {
         log.info("Searching products with term: {}", searchTerm);
         List<Product> products = productRepository.searchProducts(searchTerm);
-        return productMapper.toDTO(products);
+
+        if (products.isEmpty()) {
+            return List.of();
+        }
+
+        // Collect all unique createdBy (MongoDB User ID) values to batch fetch users
+        Set<String> creatorUserIds = products.stream()
+            .map(Product::getCreatedBy)
+            .filter(id -> id != null && !id.isEmpty() && !id.equals("system"))
+            .collect(Collectors.toSet());
+
+        // Batch fetch users by MongoDB ID and create a map for quick lookup
+        Map<String, User> userIdToUser = creatorUserIds.stream()
+            .map(userId -> userRepository.findById(userId).orElse(null))
+            .filter(user -> user != null)
+            .collect(Collectors.toMap(
+                User::getId,
+                user -> user,
+                (existing, replacement) -> existing
+            ));
+
+        // Transform products to enhanced ProductDTO
+        return products.stream()
+            .map(product -> mapToEnhancedProductDTO(product, userIdToUser))
+            .collect(Collectors.toList());
     }
 
     /**

@@ -47,6 +47,9 @@ public class User extends BaseEntity {
     private String department;
     private String territory;
     private String jobTitle;
+
+    // Profile picture stored as Base64 encoded string
+    private String profilePicture;
     
     // Manager hierarchy
     private String managerId; // Keycloak ID of assigned manager

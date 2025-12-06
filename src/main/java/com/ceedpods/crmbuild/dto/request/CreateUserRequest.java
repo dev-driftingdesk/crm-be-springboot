@@ -54,7 +54,11 @@ public class CreateUserRequest {
     
     // For sales reps
     private String assignedManagerId;
-    
+
     // Pre-assigned permissions
     private List<String> permissionCodes;
+
+    // Profile picture is handled separately as MultipartFile in controller
+    // and stored as Base64 string in the database
+    private String profilePicture;
 }

@@ -58,23 +58,24 @@ public class UserService {
     }
     
     @Transactional
-    public User createUser(String email, String firstName, String lastName, UserRole role, 
-                          String password,List<String> permisionCodes,String phonenumber, String createdBy) {
+    public User createUser(String email, String firstName, String lastName, UserRole role,
+                          String password, List<String> permisionCodes, String phonenumber,
+                          String profilePicture, String createdBy) {
         // Check if user already exists
         if (existsByEmail(email)) {
             throw new RuntimeException("User with this email already exists");
         }
-        
+
         try {
             // Ensure all roles exist in Keycloak
             keycloakAdminService.ensureAllRolesExist();
-            
+
             // Create user in Keycloak first
             String keycloakUserId = keycloakAdminService.createUser(email, firstName, lastName, password);
-            
+
             // Assign role in Keycloak
             keycloakAdminService.assignRealmRoleToUser(keycloakUserId, role.name());
-            
+
             // Create user in MongoDB
             User user = User.builder()
                 .keycloakId(keycloakUserId)
@@ -82,8 +83,9 @@ public class UserService {
                 .firstName(firstName)
                 .lastName(lastName)
                 .role(role)
-                    .permissions(permisionCodes)
-                    .phoneNumber(phonenumber)
+                .permissions(permisionCodes)
+                .phoneNumber(phonenumber)
+                .profilePicture(profilePicture)
                 .enabled(true)
                 .emailVerified(false)
                 .mustChangePassword(true)
@@ -157,18 +159,20 @@ public class UserService {
     public User updateUser(String userId, User updatedUser, String updatedBy) {
         User existingUser = userRepository.findById(userId)
             .orElseThrow(() -> new RuntimeException("User not found: " + userId));
-        
+
         // Update allowed fields
         existingUser.setFirstName(updatedUser.getFirstName());
         existingUser.setLastName(updatedUser.getLastName());
         existingUser.setPhoneNumber(updatedUser.getPhoneNumber());
         existingUser.setDepartment(updatedUser.getDepartment());
+        existingUser.setTerritory(updatedUser.getTerritory());
         existingUser.setJobTitle(updatedUser.getJobTitle());
+        existingUser.setProfilePicture(updatedUser.getProfilePicture());
         existingUser.setEnabled(updatedUser.isEnabled());
         // Audit fields automatically handled by Spring Data Auditing
-        
+
         User saved = userRepository.save(existingUser);
-        
+
         log.info("Updated user {} by {}", existingUser.getEmail(), updatedBy);
         return saved;
     }

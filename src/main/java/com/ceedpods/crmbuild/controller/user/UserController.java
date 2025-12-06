@@ -12,9 +12,11 @@ import com.ceedpods.crmbuild.security.RequireAnyPermission;
 import com.ceedpods.crmbuild.security.RequirePermission;
 import com.ceedpods.crmbuild.service.user.UserHierarchyService;
 import com.ceedpods.crmbuild.service.user.UserService;
+import com.ceedpods.crmbuild.util.ImageUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -26,6 +28,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 import jakarta.validation.Valid;
 import java.util.List;
@@ -42,50 +45,64 @@ public class UserController {
     private final UserMapper userMapper;
     private final CustomPermissionEvaluator permissionEvaluator;
     
-    @PostMapping
+    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @RequirePermission("USER_CREATE")
     public ResponseEntity<ApiResponse<UserDTO>> createUser(
-            @Valid @RequestBody CreateUserRequest request,
+            @RequestParam("email") String email,
+            @RequestParam("firstName") String firstName,
+            @RequestParam("lastName") String lastName,
+            @RequestParam("role") UserRole role,
+            @RequestParam("password") String password,
+            @RequestParam(value = "phoneNumber", required = false) String phoneNumber,
+            @RequestParam(value = "department", required = false) String department,
+            @RequestParam(value = "territory", required = false) String territory,
+            @RequestParam(value = "jobTitle", required = false) String jobTitle,
+            @RequestParam(value = "assignedManagerId", required = false) String assignedManagerId,
+            @RequestParam(value = "profilePicture", required = false) MultipartFile profilePicture,
             Authentication authentication) {
         try {
             String createdBy = permissionEvaluator.getCurrentKeycloakId(authentication);
 
-            // Validate password confirmation if needed
-            if (request.getPassword() == null || request.getPassword().trim().isEmpty()) {
+            // Validate password
+            if (password == null || password.trim().isEmpty()) {
                 return ResponseEntity.badRequest()
                     .body(ApiResponse.error("Password is required"));
             }
 
+            // Convert profile picture to Base64 if provided
+            String profilePictureBase64 = null;
+            if (profilePicture != null && !profilePicture.isEmpty()) {
+                profilePictureBase64 = ImageUtils.convertToBase64(profilePicture);
+            }
+
             User user = userService.createUser(
-                request.getEmail(),
-                request.getFirstName(),
-                request.getLastName(),
-                request.getRole(),
-                request.getPassword(),
-                request.getPermissionCodes(),
-                request.getPhoneNumber(),
+                email,
+                firstName,
+                lastName,
+                role,
+                password,
+                null, // permissionCodes - can be added later if needed
+                phoneNumber,
+                profilePictureBase64,
                 createdBy
             );
 
             // Update additional fields
-            if (request.getPhoneNumber() != null || request.getDepartment() != null ||
-                request.getTerritory() != null || request.getJobTitle() != null) {
-
-                user.setPhoneNumber(request.getPhoneNumber());
-                user.setDepartment(request.getDepartment());
-                user.setTerritory(request.getTerritory());
-                user.setJobTitle(request.getJobTitle());
+            if (department != null || territory != null || jobTitle != null) {
+                user.setDepartment(department);
+                user.setTerritory(territory);
+                user.setJobTitle(jobTitle);
                 user = userService.save(user);
             }
 
             // Assign to manager if specified and user is sales rep
-            if (request.getRole() == UserRole.SALES_REP && request.getAssignedManagerId() != null) {
+            if (role == UserRole.SALES_REP && assignedManagerId != null) {
                 try {
                     userHierarchyService.assignSalesRepToManager(
                         createdBy,
                         user.getKeycloakId(),
-                        request.getAssignedManagerId(),
-                        request.getTerritory(),
+                        assignedManagerId,
+                        territory,
                         "Assigned during user creation"
                     );
                 } catch (Exception e) {
@@ -193,36 +210,49 @@ public class UserController {
         }
     }
     
-    @PutMapping("/{userId}")
+    @PutMapping(value = "/{userId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @RequirePermission("USER_EDIT")
     public ResponseEntity<ApiResponse<UserDTO>> updateUser(
             @PathVariable String userId,
-            @Valid @RequestBody CreateUserRequest request,
+            @RequestParam(value = "firstName", required = false) String firstName,
+            @RequestParam(value = "lastName", required = false) String lastName,
+            @RequestParam(value = "phoneNumber", required = false) String phoneNumber,
+            @RequestParam(value = "department", required = false) String department,
+            @RequestParam(value = "territory", required = false) String territory,
+            @RequestParam(value = "jobTitle", required = false) String jobTitle,
+            @RequestParam(value = "profilePicture", required = false) MultipartFile profilePicture,
             Authentication authentication) {
         try {
             String updatedBy = permissionEvaluator.getCurrentKeycloakId(authentication);
-            
+
             User existingUser = userService.findByKeycloakId(userId);
             if (existingUser == null) {
                 return ResponseEntity.notFound().build();
             }
-            
-            // Create updated user object
+
+            // Convert profile picture to Base64 if provided
+            String profilePictureBase64 = null;
+            if (profilePicture != null && !profilePicture.isEmpty()) {
+                profilePictureBase64 = ImageUtils.convertToBase64(profilePicture);
+            }
+
+            // Create updated user object with provided fields (keep existing if not provided)
             User updatedUser = User.builder()
-                .firstName(request.getFirstName())
-                .lastName(request.getLastName())
-                .phoneNumber(request.getPhoneNumber())
-                .department(request.getDepartment())
-                .territory(request.getTerritory())
-                .jobTitle(request.getJobTitle())
+                .firstName(firstName != null ? firstName : existingUser.getFirstName())
+                .lastName(lastName != null ? lastName : existingUser.getLastName())
+                .phoneNumber(phoneNumber != null ? phoneNumber : existingUser.getPhoneNumber())
+                .department(department != null ? department : existingUser.getDepartment())
+                .territory(territory != null ? territory : existingUser.getTerritory())
+                .jobTitle(jobTitle != null ? jobTitle : existingUser.getJobTitle())
+                .profilePicture(profilePictureBase64 != null ? profilePictureBase64 : existingUser.getProfilePicture())
                 .enabled(existingUser.isEnabled()) // Keep current status
                 .build();
-            
+
             User savedUser = userService.updateUser(existingUser.getId(), updatedUser, updatedBy);
             UserDTO userDTO = userMapper.toDTO(savedUser);
-            
+
             return ResponseEntity.ok(ApiResponse.success("User updated successfully", userDTO));
-            
+
         } catch (Exception e) {
             log.error("Error updating user {}: {}", userId, e.getMessage());
             return ResponseEntity.badRequest()

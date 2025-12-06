@@ -28,6 +28,8 @@ public enum Permission {
     USER_DEACTIVATE("USER_DEACTIVATE", "Deactivate users", PermissionCategory.USER_MANAGEMENT, false),
     USER_DELETE("USER_DELETE", "Delete users", PermissionCategory.USER_MANAGEMENT, false),
     USER_VIEW("USER_VIEW", "View user profiles", PermissionCategory.USER_MANAGEMENT, true),
+    USER_VIEW_ALL("USER_VIEW_ALL", "View all users in the organization", PermissionCategory.USER_MANAGEMENT, true),
+    USER_VIEW_TEAM("USER_VIEW_TEAM", "View users in own team", PermissionCategory.USER_MANAGEMENT, true),
     USER_EDIT("USER_EDIT", "Edit user profiles", PermissionCategory.USER_MANAGEMENT, false),
     USER_RESET_PASSWORD("USER_RESET_PASSWORD", "Reset user passwords", PermissionCategory.USER_MANAGEMENT, false),
     USER_MANAGE_PERMISSIONS("USER_MANAGE_PERMISSIONS", "Manage user permissions", PermissionCategory.USER_MANAGEMENT, false),
@@ -131,6 +133,7 @@ public enum Permission {
     // ========================================================================================
     // PRODUCTS & CATALOG
     // ========================================================================================
+    PRODUCT_VIEW_ALL("PRODUCT_VIEW_ALL", "View all products", PermissionCategory.PRODUCT_MANAGEMENT, true),
     PRODUCT_VIEW_CATALOG("PRODUCT_VIEW_CATALOG", "View product catalog", PermissionCategory.PRODUCT_MANAGEMENT, true),
     PRODUCT_CREATE("PRODUCT_CREATE", "Create products", PermissionCategory.PRODUCT_MANAGEMENT, false),
     PRODUCT_EDIT("PRODUCT_EDIT", "Edit products", PermissionCategory.PRODUCT_MANAGEMENT, false),
