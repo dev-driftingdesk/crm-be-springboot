@@ -56,6 +56,16 @@ public final class AppConstants {
         }
     }
 
+    // ==================== Application URLs ====================
+    public static final class Urls {
+        private Urls() {
+            throw new IllegalStateException("Constants class");
+        }
+
+        public static final String WEB_APP_URL = "https://black-glacier-015cd510f.3.azurestaticapps.net";
+        public static final String MOBILE_APP_DEEP_LINK = "ceedpods://open";
+    }
+
     // ==================== Application User Constants ====================
     public static final class DefaultUsers {
         private DefaultUsers() {
