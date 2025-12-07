@@ -3,13 +3,19 @@ package com.ceedpods.crmbuild.service.lead;
 import com.ceedpods.crmbuild.dto.lead.LeadDTO;
 import com.ceedpods.crmbuild.dto.request.CreateLeadRequest;
 import com.ceedpods.crmbuild.dto.request.UpdateLeadRequest;
+import com.ceedpods.crmbuild.entity.deal.Deal;
 import com.ceedpods.crmbuild.entity.lead.Lead;
+import com.ceedpods.crmbuild.entity.product.Product;
+import com.ceedpods.crmbuild.entity.user.User;
+import com.ceedpods.crmbuild.enums.LeadStatus;
 import com.ceedpods.crmbuild.exception.BadRequestException;
 import com.ceedpods.crmbuild.exception.ForbiddenException;
 import com.ceedpods.crmbuild.exception.ResourceNotFoundException;
 import com.ceedpods.crmbuild.mapper.LeadMapper;
 import com.ceedpods.crmbuild.repository.DealRepository;
 import com.ceedpods.crmbuild.repository.LeadRepository;
+import com.ceedpods.crmbuild.repository.ProductRepository;
+import com.ceedpods.crmbuild.repository.UserRepository;
 import com.ceedpods.crmbuild.security.CustomPermissionEvaluator;
 import com.ceedpods.crmbuild.service.auditLogService.AuditLogService;
 import lombok.RequiredArgsConstructor;
@@ -18,7 +24,13 @@ import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -27,17 +39,128 @@ public class LeadService {
 
     private final LeadRepository leadRepository;
     private final DealRepository dealRepository;
+    private final ProductRepository productRepository;
+    private final UserRepository userRepository;
     private final LeadMapper leadMapper;
     private final CustomPermissionEvaluator permissionEvaluator;
     private final AuditLogService auditLogService;
 
     /**
-     * Get all leads (excluding soft-deleted)
+     * Get all leads with summary information including:
+     * - Lead Name
+     * - Created User Name
+     * - Source (originatedFrom)
+     * - Status
+     * - Total Value (sum of product values from associated deals)
+     * - Total Deals (count of deals under this lead)
+     *
+     * This method is optimized to minimize database queries by batch fetching
+     * related entities (users, deals, products) instead of querying per lead.
      */
     public List<LeadDTO> getAllLeads() {
         log.info("Fetching all leads");
+
+        // 1. Fetch all non-deleted leads
         List<Lead> leads = leadRepository.findByDeletedFalse();
-        return leadMapper.toDTO(leads);
+        if (leads.isEmpty()) {
+            return new ArrayList<>();
+        }
+
+        // 2. Collect all unique createdBy (keycloakIds) for batch user lookup
+        Set<String> createdByIds = leads.stream()
+                .map(Lead::getCreatedBy)
+                .filter(id -> id != null && !id.isEmpty())
+                .collect(Collectors.toSet());
+
+        // 3. Batch fetch users by keycloakId and create a map for quick lookup
+        Map<String, User> userMap = userRepository.findByDeletedFalse().stream()
+                .filter(user -> createdByIds.contains(user.getKeycloakId()))
+                .collect(Collectors.toMap(User::getKeycloakId, Function.identity(), (u1, u2) -> u1));
+
+        // 4. Collect all deal IDs from all leads for batch deal lookup
+        Set<String> allDealIds = leads.stream()
+                .filter(lead -> lead.getDealIds() != null)
+                .flatMap(lead -> lead.getDealIds().stream())
+                .collect(Collectors.toSet());
+
+        // 5. Batch fetch all deals and create a map by deal ID
+        Map<String, Deal> dealMap = dealRepository.findByDeletedFalse().stream()
+                .filter(deal -> allDealIds.contains(deal.getId()))
+                .collect(Collectors.toMap(Deal::getId, Function.identity(), (d1, d2) -> d1));
+
+        // 6. Collect all unique product IDs from deals for batch product lookup
+        Set<String> allProductIds = dealMap.values().stream()
+                .filter(deal -> deal.getProductIds() != null)
+                .flatMap(deal -> deal.getProductIds().stream())
+                .collect(Collectors.toSet());
+
+        // 7. Batch fetch all products and create a map for quick lookup
+        Map<String, Product> productMap = productRepository.findByDeletedFalse().stream()
+                .filter(product -> allProductIds.contains(product.getId()))
+                .collect(Collectors.toMap(Product::getId, Function.identity(), (p1, p2) -> p1));
+
+        // 8. Build DTOs for each lead
+        List<LeadDTO> leadDTOs = new ArrayList<>();
+        for (Lead lead : leads) {
+            // Get created user name
+            String createdUserName = null;
+            if (lead.getCreatedBy() != null) {
+                User user = userMap.get(lead.getCreatedBy());
+                if (user != null) {
+                    createdUserName = user.getFullName();
+                }
+            }
+
+            // Get deals for this lead using lead.dealIds
+            List<String> leadDealIds = lead.getDealIds() != null ? lead.getDealIds() : new ArrayList<>();
+            long totalDeals = leadDealIds.size();
+
+            // Calculate total value from products in all deals for this lead
+            BigDecimal totalValue = BigDecimal.ZERO;
+            for (String dealId : leadDealIds) {
+                Deal deal = dealMap.get(dealId);
+                if (deal != null && deal.getProductIds() != null) {
+                    for (String productId : deal.getProductIds()) {
+                        Product product = productMap.get(productId);
+                        if (product != null && product.getProductValue() != null) {
+                            totalValue = totalValue.add(product.getProductValue());
+                        }
+                    }
+                }
+            }
+
+            // Build DTO with all lead fields
+            LeadDTO leadDTO = LeadDTO.builder()
+                    .id(lead.getId())
+                    .leadName(lead.getLeadName())
+                    .createdUserName(createdUserName)
+                    .originatedFrom(lead.getOriginatedFrom())
+                    .status(lead.getStatus())
+                    .company(lead.getCompany())
+                    .companyAddress(lead.getCompanyAddress())
+                    .companyWebsite(lead.getCompanyWebsite())
+                    .communication(lead.getCommunication())
+                    .platform(lead.getPlatform())
+                    .contactNumber(lead.getContactNumber())
+                    .dealIds(leadDealIds)
+                    .totalValue(totalValue)
+                    .totalDeals(totalDeals)
+                    .build();
+
+            // Set audit fields from BaseDTO
+            leadDTO.setCreatedAt(lead.getCreatedAt());
+            leadDTO.setUpdatedAt(lead.getUpdatedAt());
+            leadDTO.setCreatedBy(lead.getCreatedBy());
+            leadDTO.setUpdatedBy(lead.getUpdatedBy());
+            leadDTO.setDeleted(lead.isDeleted());
+            leadDTO.setDeletedAt(lead.getDeletedAt());
+            leadDTO.setDeletedBy(lead.getDeletedBy());
+
+            leadDTOs.add(leadDTO);
+        }
+
+        log.info("Successfully fetched {} leads", leadDTOs.size());
+        return leadDTOs;
     }
 
     /**
@@ -70,14 +193,12 @@ public class LeadService {
             throw new BadRequestException("A lead with this name already exists. Please use a different name.");
         }
 
-        // Validate deal ID exists and is unique (only if dealId is provided)
-        if (request.getDealId() != null && !request.getDealId().trim().isEmpty()) {
-            validateDealExists(request.getDealId());
-
-            // Check if dealId is already linked to another lead
-            if (leadRepository.existsByDealIdAndDeletedFalse(request.getDealId())) {
-                log.warn("Attempted to create lead with duplicate dealId: {}", request.getDealId());
-                throw new BadRequestException("A lead is already linked to this deal. Please choose a different deal.");
+        // Validate deal IDs exist (only if dealIds is provided)
+        if (request.getDealIds() != null && !request.getDealIds().isEmpty()) {
+            for (String dealId : request.getDealIds()) {
+                if (dealId != null && !dealId.trim().isEmpty()) {
+                    validateDealExists(dealId);
+                }
             }
         }
 
@@ -89,6 +210,7 @@ public class LeadService {
         Lead lead = Lead.builder()
             .id(uuid) // Set UUID as the _id
             .originatedFrom(request.getOriginatedFrom())
+            .status(request.getStatus() != null ? request.getStatus() : LeadStatus.NEW) // Default to NEW if not provided
             .leadName(request.getLeadName())
             .company(request.getCompany())
             .companyAddress(request.getCompanyAddress())
@@ -96,7 +218,7 @@ public class LeadService {
             .communication(request.getCommunication())
             .platform(request.getPlatform())
             .contactNumber(request.getContactNumber())
-            .dealId(request.getDealId()) // Optional field - can be null
+            .dealIds(request.getDealIds() != null ? request.getDealIds() : new ArrayList<>()) // Default to empty list if not provided
             .build();
 
         // Save lead
@@ -134,15 +256,11 @@ public class LeadService {
 
         // Note: leadId (UUID) cannot be updated once created
 
-        // Validate deal ID exists and is unique (only if dealId is provided)
-        if (request.getDealId() != null && !request.getDealId().trim().isEmpty()) {
-            validateDealExists(request.getDealId());
-
-            // Check if dealId is being changed to a different deal that's already linked to another lead
-            if (!request.getDealId().equals(lead.getDealId())) {
-                if (leadRepository.existsByDealIdAndDeletedFalse(request.getDealId())) {
-                    log.warn("Attempted to update lead to duplicate dealId: {}", request.getDealId());
-                    throw new BadRequestException("A lead is already linked to this deal. Please choose a different deal.");
+        // Validate deal IDs exist (only if dealIds is provided)
+        if (request.getDealIds() != null && !request.getDealIds().isEmpty()) {
+            for (String dealId : request.getDealIds()) {
+                if (dealId != null && !dealId.trim().isEmpty()) {
+                    validateDealExists(dealId);
                 }
             }
         }
@@ -150,6 +268,9 @@ public class LeadService {
         // Update fields if provided
         if (request.getOriginatedFrom() != null) {
             lead.setOriginatedFrom(request.getOriginatedFrom());
+        }
+        if (request.getStatus() != null) {
+            lead.setStatus(request.getStatus());
         }
         if (request.getLeadName() != null) {
             // Check if the new lead name already exists (excluding current lead)
@@ -180,9 +301,11 @@ public class LeadService {
         if (request.getContactNumber() != null) {
             lead.setContactNumber(request.getContactNumber());
         }
-        // DealId is now optional - only update if provided and validated
-        if (request.getDealId() != null && !request.getDealId().trim().isEmpty()) {
-            lead.setDealId(request.getDealId());
+        // DealIds - update if provided, keep existing if not
+        if (request.getDealIds() != null) {
+            lead.setDealIds(request.getDealIds());
+        } else if (lead.getDealIds() == null) {
+            lead.setDealIds(new ArrayList<>());
         }
 
         // Save updated lead
@@ -249,7 +372,7 @@ public class LeadService {
      */
     public List<LeadDTO> getLeadsByDealId(String dealId) {
         log.info("Fetching leads with Deal ID: {}", dealId);
-        List<Lead> leads = leadRepository.findByDealIdAndDeletedFalse(dealId);
+        List<Lead> leads = leadRepository.findByDealIdsContainingAndDeletedFalse(dealId);
         return leadMapper.toDTO(leads);
     }
 

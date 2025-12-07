@@ -4,6 +4,8 @@ import com.ceedpods.crmbuild.dto.lead.LeadDTO;
 import com.ceedpods.crmbuild.entity.lead.Lead;
 import org.springframework.stereotype.Component;
 
+import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -15,9 +17,12 @@ public class LeadMapper {
             return null;
         }
 
+        List<String> dealIds = entity.getDealIds() != null ? entity.getDealIds() : new ArrayList<>();
+
         LeadDTO dto = LeadDTO.builder()
             .id(entity.getId())
             .originatedFrom(entity.getOriginatedFrom())
+            .status(entity.getStatus())
             .leadName(entity.getLeadName())
             .company(entity.getCompany())
             .companyAddress(entity.getCompanyAddress())
@@ -25,7 +30,9 @@ public class LeadMapper {
             .communication(entity.getCommunication())
             .platform(entity.getPlatform())
             .contactNumber(entity.getContactNumber())
-            .dealId(entity.getDealId())
+            .dealIds(dealIds)
+            .totalDeals(dealIds.size())
+            .totalValue(BigDecimal.ZERO)
             .build();
 
         // Map audit fields from BaseEntity to BaseDTO
@@ -47,6 +54,7 @@ public class LeadMapper {
 
         Lead entity = Lead.builder()
             .originatedFrom(dto.getOriginatedFrom())
+            .status(dto.getStatus())
             .leadName(dto.getLeadName())
             .company(dto.getCompany())
             .companyAddress(dto.getCompanyAddress())
@@ -54,7 +62,7 @@ public class LeadMapper {
             .communication(dto.getCommunication())
             .platform(dto.getPlatform())
             .contactNumber(dto.getContactNumber())
-            .dealId(dto.getDealId())
+            .dealIds(dto.getDealIds())
             .build();
 
         // Map ID and audit fields from BaseDTO to BaseEntity

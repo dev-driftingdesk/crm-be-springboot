@@ -137,7 +137,7 @@ public class LeadController {
         )
     })
     @GetMapping
-    @RequirePermission("LEAD_VIEW_ALL")
+    @RequirePermission("LEAD_VIEW")
     public ResponseEntity<ApiResponse<List<LeadDTO>>> getAllLeads() {
         try {
             log.info("Fetching all leads");
