@@ -125,4 +125,27 @@ public class ProductionEmailService {
 
         sendHtmlEmail(to, subject, htmlContent);
     }
+
+    /**
+     * Send welcome email with login credentials for newly registered users
+     *
+     * @param to Recipient email address
+     * @param username Username (email) for login
+     * @param temporaryPassword One-time password for first login
+     * @param loginUrl URL for the login page
+     */
+    public void sendWelcomeEmail(String to, String username, String temporaryPassword, String loginUrl) {
+        String subject = "Welcome to " + fromName + " - Your Account is Ready!";
+
+        Context context = new Context();
+        context.setVariable("username", username);
+        context.setVariable("temporaryPassword", temporaryPassword);
+        context.setVariable("loginUrl", loginUrl);
+        context.setVariable("companyName", fromName);
+        context.setVariable("year", LocalDateTime.now().getYear());
+
+        String htmlContent = templateEngine.process("emails/welcome-user", context);
+
+        sendHtmlEmail(to, subject, htmlContent);
+    }
 }

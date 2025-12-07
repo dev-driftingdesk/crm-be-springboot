@@ -25,7 +25,10 @@ public enum AuditAction {
     UPDATE_CREDENTIALS("Credentials Updated"),
     DELETE_CREDENTIALS("Credentials Deleted"),
     SAVE_CONFIG("Configuration Saved"),
-    UPDATE_CONFIG("Configuration Updated");
+    UPDATE_CONFIG("Configuration Updated"),
+
+    // Bulk operations
+    BULK_USER_CREATED("Bulk Users Created");
 
     private final String description;
 

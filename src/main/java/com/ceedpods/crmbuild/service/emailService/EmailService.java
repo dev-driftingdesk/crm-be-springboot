@@ -50,4 +50,17 @@ public class EmailService {
         log.info("Sending password reset confirmation email to: {}", to);
         productionEmailService.sendPasswordResetConfirmationEmail(to, firstName);
     }
+
+    /**
+     * Send welcome email with login credentials for newly registered users
+     *
+     * @param to Recipient email address
+     * @param username Username (email) for login
+     * @param temporaryPassword One-time password for first login
+     * @param loginUrl URL for the login page
+     */
+    public void sendWelcomeEmail(String to, String username, String temporaryPassword, String loginUrl) {
+        log.info("Sending welcome email to: {}", to);
+        productionEmailService.sendWelcomeEmail(to, username, temporaryPassword, loginUrl);
+    }
 }

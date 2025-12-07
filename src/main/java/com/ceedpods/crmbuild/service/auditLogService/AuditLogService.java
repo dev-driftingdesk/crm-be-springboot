@@ -333,6 +333,15 @@ public class AuditLogService {
     }
 
     /**
+     * Log bulk user creation event
+     */
+    public void logBulkUserCreated(String adminEmail, String adminId, int totalCreated, int totalFailed, String details) {
+        logAudit(adminEmail, adminId, adminEmail, AuditAction.BULK_USER_CREATED,
+                AuditEntityType.USER, null, "Bulk User Registration",
+                String.format("Created: %d, Failed: %d. %s", totalCreated, totalFailed, details));
+    }
+
+    /**
      * Get all audit logs with pagination
      */
     public Page<AuditLog> getAllAuditLogs(int page, int size) {
