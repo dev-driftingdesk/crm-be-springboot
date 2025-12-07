@@ -1,7 +1,9 @@
 package com.ceedpods.crmbuild.dto.request;
 
 import com.ceedpods.crmbuild.dto.deal.SalesRepAssignment;
+import com.ceedpods.crmbuild.enums.DealStatus;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
@@ -11,6 +13,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 @Data
@@ -24,6 +27,11 @@ public class CreateDealRequest {
     @NotBlank(message = "Deal name is required")
     @Size(max = 200, message = "Deal name must not exceed 200 characters")
     private String dealName;
+
+    private DealStatus status; // Optional - defaults to OPEN if not provided
+
+    @DecimalMin(value = "0.0", message = "Commission must be a positive value")
+    private BigDecimal commission; // Optional - commission amount for this deal
 
     @NotNull(message = "Product IDs are required")
     @NotEmpty(message = "At least one product ID is required")

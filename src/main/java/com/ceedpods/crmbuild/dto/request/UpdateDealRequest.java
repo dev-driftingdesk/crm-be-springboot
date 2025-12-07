@@ -1,13 +1,16 @@
 package com.ceedpods.crmbuild.dto.request;
 
 import com.ceedpods.crmbuild.dto.deal.SalesRepAssignment;
+import com.ceedpods.crmbuild.enums.DealStatus;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 @Data
@@ -20,6 +23,11 @@ public class UpdateDealRequest {
 
     @Size(max = 200, message = "Deal name must not exceed 200 characters")
     private String dealName;
+
+    private DealStatus status; // Deal status
+
+    @DecimalMin(value = "0.0", message = "Commission must be a positive value")
+    private BigDecimal commission; // Commission amount for this deal
 
     private List<String> productIds; // List of product IDs (one or more)
 

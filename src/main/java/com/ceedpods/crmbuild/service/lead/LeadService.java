@@ -1,12 +1,17 @@
 package com.ceedpods.crmbuild.service.lead;
 
+import com.ceedpods.crmbuild.dto.deal.SalesRepAssignment;
+import com.ceedpods.crmbuild.dto.lead.DealDetailDTO;
 import com.ceedpods.crmbuild.dto.lead.LeadDTO;
+import com.ceedpods.crmbuild.dto.lead.LeadDetailDTO;
+import com.ceedpods.crmbuild.dto.lead.LeadStatisticsDTO;
 import com.ceedpods.crmbuild.dto.request.CreateLeadRequest;
 import com.ceedpods.crmbuild.dto.request.UpdateLeadRequest;
 import com.ceedpods.crmbuild.entity.deal.Deal;
 import com.ceedpods.crmbuild.entity.lead.Lead;
 import com.ceedpods.crmbuild.entity.product.Product;
 import com.ceedpods.crmbuild.entity.user.User;
+import com.ceedpods.crmbuild.enums.DealStatus;
 import com.ceedpods.crmbuild.enums.LeadStatus;
 import com.ceedpods.crmbuild.exception.BadRequestException;
 import com.ceedpods.crmbuild.exception.ForbiddenException;
@@ -25,7 +30,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -172,6 +179,243 @@ public class LeadService {
             .filter(l -> !l.isDeleted())
             .orElseThrow(() -> new ResourceNotFoundException("Lead not found with UUID: " + id));
         return leadMapper.toDTO(lead);
+    }
+
+    /**
+     * Get detailed lead information by ID including:
+     * - Lead details: personal info (name, contact person), company name
+     * - Communication: phone, email, WhatsApp number, etc.
+     * - Company details: company name, address, website, industry
+     * - Lead statistics: total lead value, total commission, average deal size,
+     *                    conversion probability, open deals count, closed deals count, critical items
+     * - All deals under the lead: full list of related deals with relevant fields
+     */
+    public LeadDetailDTO getLeadDetails(String id) {
+        log.info("Fetching detailed lead information for UUID: {}", id);
+
+        // 1. Fetch the lead
+        Lead lead = leadRepository.findById(id)
+            .filter(l -> !l.isDeleted())
+            .orElseThrow(() -> new ResourceNotFoundException("Lead not found with UUID: " + id));
+
+        // 2. Get deal IDs from the lead
+        List<String> leadDealIds = lead.getDealIds() != null ? lead.getDealIds() : new ArrayList<>();
+
+        // 3. Batch fetch all deals for this lead
+        Map<String, Deal> dealMap = dealRepository.findByDeletedFalse().stream()
+            .filter(deal -> leadDealIds.contains(deal.getId()))
+            .collect(Collectors.toMap(Deal::getId, Function.identity(), (d1, d2) -> d1));
+
+        // 4. Collect all product IDs and sales rep IDs from deals
+        Set<String> allProductIds = new HashSet<>();
+        Set<String> allSalesRepIds = new HashSet<>();
+        for (Deal deal : dealMap.values()) {
+            if (deal.getProductIds() != null) {
+                allProductIds.addAll(deal.getProductIds());
+            }
+            if (deal.getSalesReps() != null) {
+                deal.getSalesReps().forEach(sr -> allSalesRepIds.add(sr.getId()));
+            }
+        }
+
+        // 5. Batch fetch all products
+        Map<String, Product> productMap = productRepository.findByDeletedFalse().stream()
+            .filter(product -> allProductIds.contains(product.getId()))
+            .collect(Collectors.toMap(Product::getId, Function.identity(), (p1, p2) -> p1));
+
+        // 6. Batch fetch all users (for sales reps and audit info)
+        Set<String> allUserIds = new HashSet<>(allSalesRepIds);
+        if (lead.getCreatedBy() != null) allUserIds.add(lead.getCreatedBy());
+        if (lead.getUpdatedBy() != null) allUserIds.add(lead.getUpdatedBy());
+
+        Map<String, User> userMap = userRepository.findByDeletedFalse().stream()
+            .filter(user -> allUserIds.contains(user.getId()) || allUserIds.contains(user.getKeycloakId()))
+            .collect(Collectors.toMap(
+                user -> user.getId() != null ? user.getId() : user.getKeycloakId(),
+                Function.identity(),
+                (u1, u2) -> u1
+            ));
+
+        // Also create a map by keycloakId for audit lookups
+        Map<String, User> userByKeycloakIdMap = userRepository.findByDeletedFalse().stream()
+            .filter(user -> user.getKeycloakId() != null)
+            .collect(Collectors.toMap(User::getKeycloakId, Function.identity(), (u1, u2) -> u1));
+
+        // 7. Build deal details list and calculate statistics
+        List<DealDetailDTO> dealDetails = new ArrayList<>();
+        BigDecimal totalLeadValue = BigDecimal.ZERO;
+        BigDecimal totalCommission = BigDecimal.ZERO;
+        long openDealsCount = 0;
+        long closedDealsCount = 0;
+        long wonDealsCount = 0;
+        long lostDealsCount = 0;
+        List<String> criticalItems = new ArrayList<>();
+
+        for (String dealId : leadDealIds) {
+            Deal deal = dealMap.get(dealId);
+            if (deal == null) continue;
+
+            // Calculate deal value from products
+            BigDecimal dealValue = BigDecimal.ZERO;
+            List<DealDetailDTO.ProductSummaryDTO> productSummaries = new ArrayList<>();
+
+            if (deal.getProductIds() != null) {
+                for (String productId : deal.getProductIds()) {
+                    Product product = productMap.get(productId);
+                    if (product != null) {
+                        if (product.getProductValue() != null) {
+                            dealValue = dealValue.add(product.getProductValue());
+                        }
+                        productSummaries.add(DealDetailDTO.ProductSummaryDTO.builder()
+                            .id(product.getId())
+                            .productName(product.getProductName())
+                            .productValue(product.getProductValue())
+                            .productStatus(product.getProductStatus() != null ? product.getProductStatus().getDisplayName() : null)
+                            .build());
+                    }
+                }
+            }
+
+            // Build sales rep details
+            List<DealDetailDTO.SalesRepDetailDTO> salesRepDetails = new ArrayList<>();
+            if (deal.getSalesReps() != null) {
+                for (SalesRepAssignment sr : deal.getSalesReps()) {
+                    User user = userMap.get(sr.getId());
+                    salesRepDetails.add(DealDetailDTO.SalesRepDetailDTO.builder()
+                        .id(sr.getId())
+                        .fullName(user != null ? user.getFullName() : null)
+                        .email(user != null ? user.getEmail() : null)
+                        .position(sr.getPosition() != null ? sr.getPosition().getDisplayName() : null)
+                        .build());
+                }
+            }
+
+            // Count deals by status
+            DealStatus dealStatus = deal.getStatus();
+            if (dealStatus != null) {
+                switch (dealStatus) {
+                    case OPEN, PENDING, NEGOTIATION -> openDealsCount++;
+                    case WON -> {
+                        closedDealsCount++;
+                        wonDealsCount++;
+                    }
+                    case LOST -> {
+                        closedDealsCount++;
+                        lostDealsCount++;
+                    }
+                }
+            } else {
+                openDealsCount++; // Default to open if no status
+            }
+
+            // Add to totals
+            totalLeadValue = totalLeadValue.add(dealValue);
+            if (deal.getCommission() != null) {
+                totalCommission = totalCommission.add(deal.getCommission());
+            }
+
+            // Check for critical items (deals without status or products)
+            if (dealStatus == null) {
+                criticalItems.add("Deal '" + deal.getDealName() + "' has no status assigned");
+            }
+            if (deal.getProductIds() == null || deal.getProductIds().isEmpty()) {
+                criticalItems.add("Deal '" + deal.getDealName() + "' has no products");
+            }
+
+            // Build deal detail DTO
+            dealDetails.add(DealDetailDTO.builder()
+                .id(deal.getId())
+                .dealName(deal.getDealName())
+                .status(deal.getStatus())
+                .commission(deal.getCommission())
+                .dealValue(dealValue)
+                .products(productSummaries)
+                .salesReps(salesRepDetails)
+                .createdAt(deal.getCreatedAt())
+                .updatedAt(deal.getUpdatedAt())
+                .build());
+        }
+
+        // 8. Calculate statistics
+        long totalDeals = leadDealIds.size();
+        BigDecimal averageDealSize = totalDeals > 0
+            ? totalLeadValue.divide(BigDecimal.valueOf(totalDeals), 2, RoundingMode.HALF_UP)
+            : BigDecimal.ZERO;
+
+        // Calculate conversion probability based on lead status
+        Double conversionProbability = calculateConversionProbability(lead.getStatus());
+
+        LeadStatisticsDTO statistics = LeadStatisticsDTO.builder()
+            .totalLeadValue(totalLeadValue)
+            .totalCommission(totalCommission)
+            .averageDealSize(averageDealSize)
+            .conversionProbability(conversionProbability)
+            .openDealsCount(openDealsCount)
+            .closedDealsCount(closedDealsCount)
+            .wonDealsCount(wonDealsCount)
+            .lostDealsCount(lostDealsCount)
+            .criticalItems(criticalItems.isEmpty() ? null : criticalItems)
+            .build();
+
+        // 9. Get user names for audit fields
+        String createdByName = null;
+        String updatedByName = null;
+        if (lead.getCreatedBy() != null) {
+            User createdByUser = userByKeycloakIdMap.get(lead.getCreatedBy());
+            if (createdByUser != null) {
+                createdByName = createdByUser.getFullName();
+            }
+        }
+        if (lead.getUpdatedBy() != null) {
+            User updatedByUser = userByKeycloakIdMap.get(lead.getUpdatedBy());
+            if (updatedByUser != null) {
+                updatedByName = updatedByUser.getFullName();
+            }
+        }
+
+        // 10. Build and return the detailed response
+        return LeadDetailDTO.builder()
+            .id(lead.getId())
+            .leadName(lead.getLeadName())
+            .status(lead.getStatus())
+            .originatedFrom(lead.getOriginatedFrom())
+            .personalInfo(LeadDetailDTO.PersonalInfoDTO.builder()
+                .contactPersonName(lead.getLeadName())
+                .contactNumber(lead.getContactNumber())
+                .platform(lead.getPlatform())
+                .build())
+            .communication(lead.getCommunication())
+            .companyDetails(LeadDetailDTO.CompanyDetailsDTO.builder()
+                .companyName(lead.getCompany())
+                .companyAddress(lead.getCompanyAddress())
+                .companyWebsite(lead.getCompanyWebsite())
+                .industry(null) // Industry field not available in Lead entity
+                .build())
+            .statistics(statistics)
+            .deals(dealDetails)
+            .createdAt(lead.getCreatedAt())
+            .updatedAt(lead.getUpdatedAt())
+            .createdBy(lead.getCreatedBy())
+            .createdByName(createdByName)
+            .updatedBy(lead.getUpdatedBy())
+            .updatedByName(updatedByName)
+            .build();
+    }
+
+    /**
+     * Calculate conversion probability based on lead status
+     */
+    private Double calculateConversionProbability(LeadStatus status) {
+        if (status == null) {
+            return 0.0;
+        }
+        return switch (status) {
+            case NEW -> 10.0;
+            case CONTACTED -> 25.0;
+            case QUALIFIED -> 50.0;
+            case CONVERTED -> 100.0;
+            case LOST -> 0.0;
+        };
     }
 
     /**

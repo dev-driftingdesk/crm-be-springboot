@@ -53,6 +53,7 @@ public enum Permission {
     // LEADS
     // ========================================================================================
     LEAD_VIEW("LEAD_VIEW", "View leads", PermissionCategory.LEAD_MANAGEMENT, true),
+    LEAD_VIEW_ALL("LEAD_VIEW_ALL", "View all leads with full details", PermissionCategory.LEAD_MANAGEMENT, true),
     LEAD_CREATE("LEAD_CREATE", "Create new leads", PermissionCategory.LEAD_MANAGEMENT, true),
     LEAD_EDIT("LEAD_EDIT", "Edit lead information", PermissionCategory.LEAD_MANAGEMENT, true),
     LEAD_DELETE("LEAD_DELETE", "Delete leads", PermissionCategory.LEAD_MANAGEMENT, true),

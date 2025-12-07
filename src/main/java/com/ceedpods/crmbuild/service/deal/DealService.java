@@ -5,6 +5,7 @@ import com.ceedpods.crmbuild.dto.deal.SalesRepAssignment;
 import com.ceedpods.crmbuild.dto.request.CreateDealRequest;
 import com.ceedpods.crmbuild.dto.request.UpdateDealRequest;
 import com.ceedpods.crmbuild.entity.deal.Deal;
+import com.ceedpods.crmbuild.enums.DealStatus;
 import com.ceedpods.crmbuild.exception.BadRequestException;
 import com.ceedpods.crmbuild.exception.ForbiddenException;
 import com.ceedpods.crmbuild.exception.ResourceNotFoundException;
@@ -101,6 +102,8 @@ public class DealService {
         Deal deal = Deal.builder()
             .id(uuid) // Set UUID as the _id
             .dealName(request.getDealName())
+            .status(request.getStatus() != null ? request.getStatus() : DealStatus.OPEN) // Default to OPEN if not provided
+            .commission(request.getCommission())
             .productIds(request.getProductIds())
             .salesReps(request.getSalesReps())
             .leadId(request.getLeadId())
@@ -143,6 +146,14 @@ public class DealService {
                 throw new BadRequestException("Deal with name '" + request.getDealName() + "' already exists");
             }
             deal.setDealName(request.getDealName());
+        }
+
+        if (request.getStatus() != null) {
+            deal.setStatus(request.getStatus());
+        }
+
+        if (request.getCommission() != null) {
+            deal.setCommission(request.getCommission());
         }
 
         if (request.getLeadId() != null && !request.getLeadId().trim().isEmpty()) {
