@@ -3,6 +3,7 @@ package com.ceedpods.crmbuild.entity.deal;
 import com.ceedpods.crmbuild.constants.AppConstants;
 import com.ceedpods.crmbuild.dto.deal.SalesRepAssignment;
 import com.ceedpods.crmbuild.entity.BaseEntity;
+import com.ceedpods.crmbuild.enums.DealStatus;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -11,6 +12,7 @@ import lombok.NoArgsConstructor;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 @Data
@@ -25,6 +27,10 @@ public class Deal extends BaseEntity {
     private String id; // UUID as primary ID (dealId)
 
     private String dealName;
+
+    private DealStatus status; // Deal status (OPEN, WON, LOST, PENDING, NEGOTIATION)
+
+    private BigDecimal commission; // Commission amount for this deal
 
     private List<String> productIds; // List of product IDs (one or more)
 

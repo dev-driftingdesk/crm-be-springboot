@@ -31,6 +31,8 @@ public class DealMapper {
         DealDTO dto = DealDTO.builder()
             .id(entity.getId())
             .dealName(entity.getDealName())
+            .status(entity.getStatus())
+            .commission(entity.getCommission())
             .productIds(entity.getProductIds() != null ? new ArrayList<>(entity.getProductIds()) : null)
             .salesReps(salesRepsCopy)
             .leadId(entity.getLeadId())
@@ -66,6 +68,8 @@ public class DealMapper {
 
         Deal entity = Deal.builder()
             .dealName(dto.getDealName())
+            .status(dto.getStatus())
+            .commission(dto.getCommission())
             .productIds(dto.getProductIds() != null ? new ArrayList<>(dto.getProductIds()) : null)
             .salesReps(salesRepsCopy)
             .leadId(dto.getLeadId())

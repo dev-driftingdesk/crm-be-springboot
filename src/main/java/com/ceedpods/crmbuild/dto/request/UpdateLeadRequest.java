@@ -1,7 +1,8 @@
 package com.ceedpods.crmbuild.dto.request;
 
 import com.ceedpods.crmbuild.enums.LeadOriginatedFrom;
-import jakarta.validation.constraints.NotBlank;
+import com.ceedpods.crmbuild.enums.LeadStatus;
+import com.fasterxml.jackson.annotation.JsonAlias;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -20,6 +21,8 @@ public class UpdateLeadRequest {
     // Note: leadId (UUID) cannot be updated
 
     private LeadOriginatedFrom originatedFrom;
+
+    private LeadStatus status;
 
     @Size(max = 200, message = "Lead name must not exceed 200 characters")
     private String leadName;
@@ -41,6 +44,6 @@ public class UpdateLeadRequest {
     @Size(max = 20, message = "Contact number must not exceed 20 characters")
     private String contactNumber;
 
-    @Size(max = 50, message = "Deal ID must not exceed 50 characters")
-    private String dealId; // Optional field - dealId can be null
+    @JsonAlias("dealId") // Accept both "dealId" and "dealIds" for backward compatibility
+    private List<String> dealIds; // Optional field - dealIds can be null or empty
 }

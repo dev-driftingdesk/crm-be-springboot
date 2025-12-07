@@ -1,6 +1,7 @@
 package com.ceedpods.crmbuild.controller.lead;
 
 import com.ceedpods.crmbuild.dto.lead.LeadDTO;
+import com.ceedpods.crmbuild.dto.lead.LeadDetailDTO;
 import com.ceedpods.crmbuild.dto.request.CreateLeadRequest;
 import com.ceedpods.crmbuild.dto.request.UpdateLeadRequest;
 import com.ceedpods.crmbuild.dto.response.ApiResponse;
@@ -137,7 +138,7 @@ public class LeadController {
         )
     })
     @GetMapping
-    @RequirePermission("LEAD_VIEW_ALL")
+    @RequirePermission("LEAD_VIEW")
     public ResponseEntity<ApiResponse<List<LeadDTO>>> getAllLeads() {
         try {
             log.info("Fetching all leads");
@@ -151,11 +152,13 @@ public class LeadController {
     }
 
     /**
-     * Get lead by UUID
+     * Get lead by UUID with detailed information
      */
     @Operation(
         summary = "Get Lead by ID",
-        description = "Retrieves a specific lead by its UUID. Requires LEAD_VIEW_ALL permission."
+        description = "Retrieves detailed information for a specific lead including personal info, " +
+                      "communication details, company information, statistics, and all related deals. " +
+                      "Requires LEAD_VIEW_ALL permission."
     )
     @ApiResponses(value = {
         @io.swagger.v3.oas.annotations.responses.ApiResponse(
@@ -169,16 +172,20 @@ public class LeadController {
         @io.swagger.v3.oas.annotations.responses.ApiResponse(
             responseCode = "404",
             description = "Lead not found"
+        ),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(
+            responseCode = "403",
+            description = "Insufficient permissions"
         )
     })
     @GetMapping("/{id}")
-    @RequirePermission("LEAD_VIEW_ALL")
-    public ResponseEntity<ApiResponse<LeadDTO>> getLeadById(
+    @RequirePermission("LEAD_VIEW")
+    public ResponseEntity<ApiResponse<LeadDetailDTO>> getLeadById(
             @Parameter(description = "Lead UUID", required = true, example = "123e4567-e89b-12d3-a456-426614174000")
             @PathVariable String id) {
         try {
             log.info("Fetching lead with UUID: {}", id);
-            LeadDTO lead = leadService.getLeadById(id);
+            LeadDetailDTO lead = leadService.getLeadDetails(id);
             return ResponseEntity.ok(ApiResponse.success(lead));
         } catch (Exception e) {
             log.error("Error fetching lead: {}", e.getMessage());

@@ -3,6 +3,7 @@ package com.ceedpods.crmbuild.entity.lead;
 import com.ceedpods.crmbuild.constants.AppConstants;
 import com.ceedpods.crmbuild.entity.BaseEntity;
 import com.ceedpods.crmbuild.enums.LeadOriginatedFrom;
+import com.ceedpods.crmbuild.enums.LeadStatus;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -28,6 +29,8 @@ public class Lead extends BaseEntity {
 
     private LeadOriginatedFrom originatedFrom; // Enum: facebook, whatsapp, instagram, email
 
+    private LeadStatus status; // Enum: NEW, CONTACTED, QUALIFIED, CONVERTED, LOST
+
     private String leadName;
 
     private String company;
@@ -42,5 +45,5 @@ public class Lead extends BaseEntity {
 
     private String contactNumber;
 
-    private String dealId; // Optional field - assigning a dealId is not mandatory
+    private List<String> dealIds; // Optional field - assigning dealIds is not mandatory
 }
