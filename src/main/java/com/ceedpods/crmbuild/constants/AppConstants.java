@@ -63,6 +63,7 @@ public final class AppConstants {
         }
 
         public static final String WEB_APP_URL = "https://black-glacier-015cd510f.3.azurestaticapps.net";
+        public static final String MOBILE_APP_DEEP_LINK = "ceedpods://open";
     }
 
     // ==================== Application User Constants ====================

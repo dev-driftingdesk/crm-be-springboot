@@ -40,6 +40,7 @@ public class BulkUserRegistrationService {
     );
 
     private static final String WEB_APP_URL = AppConstants.Urls.WEB_APP_URL;
+    private static final String MOBILE_APP_URL = AppConstants.Urls.MOBILE_APP_DEEP_LINK;
 
     /**
      * Perform bulk registration of sales users from a list of email addresses
@@ -243,7 +244,7 @@ public class BulkUserRegistrationService {
 
         while (retryCount < maxRetries) {
             try {
-                emailService.sendWelcomeEmail(email, email, temporaryPassword, WEB_APP_URL);
+                emailService.sendWelcomeEmail(email, email, temporaryPassword, WEB_APP_URL, MOBILE_APP_URL);
                 log.info("Welcome email sent successfully to: {}", email);
                 return "sent";
             } catch (Exception e) {
