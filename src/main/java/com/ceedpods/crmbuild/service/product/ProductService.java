@@ -1,6 +1,7 @@
 package com.ceedpods.crmbuild.service.product;
 
 import com.ceedpods.crmbuild.dto.product.ProductDTO;
+import com.ceedpods.crmbuild.dto.product.ProductListResponse;
 import com.ceedpods.crmbuild.dto.request.CreateProductRequest;
 import com.ceedpods.crmbuild.dto.request.UpdateProductRequest;
 import com.ceedpods.crmbuild.dto.response.CreateProductResponse;
@@ -45,11 +46,11 @@ public class ProductService {
     private final UserRepository userRepository;
 
     /**
-     * Get all products with enhanced summary information (excluding soft-deleted)
-     * Includes: Product Name, Created User Name, Created User Profile Picture, In Deal Count, Base Price, Total Sales, Revenue
+     * Get all products (excluding soft-deleted)
+     * Optimized: Uses batch queries to minimize database round-trips
      */
-    public List<ProductDTO> getAllProducts() {
-        log.info("Fetching all products with enhanced summary");
+    public List<ProductListResponse> getAllProducts() {
+        log.info("Fetching all products");
 
         List<Product> products = productRepository.findByDeletedFalse();
 
@@ -58,78 +59,85 @@ public class ProductService {
             return List.of();
         }
 
-        // Collect all unique createdBy (MongoDB User ID) values to batch fetch users
-        Set<String> creatorUserIds = products.stream()
+        // Collect all product IDs for batch deal count lookup
+        List<String> productIds = products.stream()
+            .map(Product::getId)
+            .collect(Collectors.toList());
+
+        // Collect all unique createdBy (MongoDB User ID) values for batch user lookup
+        List<String> creatorUserIds = products.stream()
             .map(Product::getCreatedBy)
             .filter(id -> id != null && !id.isEmpty() && !id.equals("system"))
-            .collect(Collectors.toSet());
+            .distinct()
+            .collect(Collectors.toList());
 
-        // Batch fetch users by MongoDB ID and create a map for quick lookup (stores full User object for name and profile picture)
-        Map<String, User> userIdToUser = creatorUserIds.stream()
-            .map(userId -> userRepository.findById(userId).orElse(null))
-            .filter(user -> user != null)
-            .collect(Collectors.toMap(
-                User::getId,
-                user -> user,
-                (existing, replacement) -> existing // Handle duplicates
-            ));
+        // Batch fetch users in a single query
+        Map<String, User> userIdToUser = creatorUserIds.isEmpty()
+            ? Map.of()
+            : userRepository.findByIdInAndDeletedFalse(creatorUserIds).stream()
+                .collect(Collectors.toMap(User::getId, user -> user, (a, b) -> a));
 
-        // Transform products to enhanced ProductDTO
+        // Batch fetch all deals containing any of these products in a single query
+        // Then count in memory
+        Map<String, Long> productDealCounts = dealRepository.findByProductIdsInAndDeletedFalse(productIds).stream()
+            .flatMap(deal -> deal.getProductIds() != null ? deal.getProductIds().stream() : java.util.stream.Stream.empty())
+            .filter(productIds::contains)
+            .collect(Collectors.groupingBy(id -> id, Collectors.counting()));
+
         return products.stream()
-            .map(product -> mapToEnhancedProductDTO(product, userIdToUser))
+            .map(product -> mapToProductListResponse(product, userIdToUser, productDealCounts))
             .collect(Collectors.toList());
     }
 
     /**
-     * Maps a Product entity to ProductDTO with calculated statistics
+     * Maps a Product entity to ProductListResponse
      */
-    private ProductDTO mapToEnhancedProductDTO(Product product, Map<String, User> userIdToUser) {
-        // Get the created user info from the map (createdBy stores MongoDB User ID)
-        String createdUserName = null;
-        String createdUserProfilePicture = null;
+    private ProductListResponse mapToProductListResponse(Product product, Map<String, User> userIdToUser, Map<String, Long> productDealCounts) {
+        // Build createdBy object
+        ProductListResponse.CreatedBy createdBy = null;
         if (product.getCreatedBy() != null && !product.getCreatedBy().equals("system")) {
             User createdUser = userIdToUser.get(product.getCreatedBy());
             if (createdUser != null) {
-                createdUserName = createdUser.getFullName();
-                createdUserProfilePicture = createdUser.getProfilePicture();
+                createdBy = ProductListResponse.CreatedBy.builder()
+                    .userId(createdUser.getId())
+                    .name(createdUser.getFullName())
+                    .profilePicture(null) // Will be populated after Minio deployment
+                    .build();
             } else {
-                createdUserName = "Unknown User";
+                createdBy = ProductListResponse.CreatedBy.builder()
+                    .userId(product.getCreatedBy())
+                    .name("Unknown User")
+                    .profilePicture(null)
+                    .build();
             }
         } else if ("system".equals(product.getCreatedBy())) {
-            createdUserName = "System";
+            createdBy = ProductListResponse.CreatedBy.builder()
+                .userId("system")
+                .name("System")
+                .profilePicture(null)
+                .build();
         }
 
-        // Count deals containing this product
-        long inDealCount = dealRepository.countByProductIdAndDeletedFalse(product.getId());
-
-        // Base price from product
-        BigDecimal basePrice = product.getBasePrice() != null
-            ? product.getBasePrice()
-            : BigDecimal.ZERO;
-
-        // Total sales equals the deal count
-        long totalSales = inDealCount;
+        // Get deal count from pre-computed map (O(1) lookup)
+        long inDeals = productDealCounts.getOrDefault(product.getId(), 0L);
+        long totalSales = inDeals;
 
         // Revenue = basePrice × totalSales
+        BigDecimal basePrice = product.getBasePrice() != null ? product.getBasePrice() : BigDecimal.ZERO;
         BigDecimal revenue = basePrice.multiply(BigDecimal.valueOf(totalSales));
 
-        // Build the enhanced DTO using the mapper's toDTO method and then enhance it
-        ProductDTO dto = productMapper.toDTO(product);
-
-        // Set enhanced fields (audit fields are already set by the mapper)
-        dto.setCreatedUserName(createdUserName);
-        dto.setCreatedUserProfilePicture(createdUserProfilePicture);
-        dto.setInDealCount(inDealCount);
-        dto.setBasePrice(basePrice);
-        dto.setTotalSales(totalSales);
-        dto.setRevenue(revenue);
-
-        return dto;
+        return ProductListResponse.builder()
+            .productId(product.getId())
+            .productName(product.getProductName())
+            .createdBy(createdBy)
+            .inDeals(inDeals)
+            .totalSales(totalSales)
+            .revenue(revenue)
+            .build();
     }
 
     /**
-     * Get product by ID with enhanced summary information
-     * Includes: Product Name, Created User Name, Created User Profile Picture, In Deal Count, Base Price, Total Sales, Revenue
+     * Get product by ID with full details
      */
     public ProductDTO getProductById(String id) {
         log.info("Fetching product with ID: {}", id);
@@ -137,14 +145,7 @@ public class ProductService {
             .filter(p -> !p.isDeleted())
             .orElseThrow(() -> new ResourceNotFoundException("Product not found with ID: " + id));
 
-        // Fetch the created user for enhanced fields
-        Map<String, User> userIdToUser = new java.util.HashMap<>();
-        if (product.getCreatedBy() != null && !product.getCreatedBy().equals("system")) {
-            userRepository.findById(product.getCreatedBy())
-                .ifPresent(user -> userIdToUser.put(user.getId(), user));
-        }
-
-        return mapToEnhancedProductDTO(product, userIdToUser);
+        return productMapper.toDTO(product);
     }
 
 
@@ -357,10 +358,10 @@ public class ProductService {
     }
 
     /**
-     * Search products by keyword with enhanced summary information
-     * Includes: Product Name, Created User Name, Created User Profile Picture, In Deal Count, Base Price, Total Sales, Revenue
+     * Search products by keyword
+     * Optimized: Uses batch queries to minimize database round-trips
      */
-    public List<ProductDTO> searchProducts(String searchTerm) {
+    public List<ProductListResponse> searchProducts(String searchTerm) {
         log.info("Searching products with term: {}", searchTerm);
         List<Product> products = productRepository.searchProducts(searchTerm);
 
@@ -368,25 +369,32 @@ public class ProductService {
             return List.of();
         }
 
-        // Collect all unique createdBy (MongoDB User ID) values to batch fetch users
-        Set<String> creatorUserIds = products.stream()
+        // Collect all product IDs for batch deal count lookup
+        List<String> productIds = products.stream()
+            .map(Product::getId)
+            .collect(Collectors.toList());
+
+        // Collect all unique createdBy (MongoDB User ID) values for batch user lookup
+        List<String> creatorUserIds = products.stream()
             .map(Product::getCreatedBy)
             .filter(id -> id != null && !id.isEmpty() && !id.equals("system"))
-            .collect(Collectors.toSet());
+            .distinct()
+            .collect(Collectors.toList());
 
-        // Batch fetch users by MongoDB ID and create a map for quick lookup
-        Map<String, User> userIdToUser = creatorUserIds.stream()
-            .map(userId -> userRepository.findById(userId).orElse(null))
-            .filter(user -> user != null)
-            .collect(Collectors.toMap(
-                User::getId,
-                user -> user,
-                (existing, replacement) -> existing
-            ));
+        // Batch fetch users in a single query
+        Map<String, User> userIdToUser = creatorUserIds.isEmpty()
+            ? Map.of()
+            : userRepository.findByIdInAndDeletedFalse(creatorUserIds).stream()
+                .collect(Collectors.toMap(User::getId, user -> user, (a, b) -> a));
 
-        // Transform products to enhanced ProductDTO
+        // Batch fetch all deals containing any of these products in a single query
+        Map<String, Long> productDealCounts = dealRepository.findByProductIdsInAndDeletedFalse(productIds).stream()
+            .flatMap(deal -> deal.getProductIds() != null ? deal.getProductIds().stream() : java.util.stream.Stream.empty())
+            .filter(productIds::contains)
+            .collect(Collectors.groupingBy(id -> id, Collectors.counting()));
+
         return products.stream()
-            .map(product -> mapToEnhancedProductDTO(product, userIdToUser))
+            .map(product -> mapToProductListResponse(product, userIdToUser, productDealCounts))
             .collect(Collectors.toList());
     }
 
