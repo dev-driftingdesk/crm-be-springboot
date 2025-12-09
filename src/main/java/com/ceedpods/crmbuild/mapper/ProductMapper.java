@@ -2,13 +2,13 @@ package com.ceedpods.crmbuild.mapper;
 
 import com.ceedpods.crmbuild.dto.product.ProductDTO;
 import com.ceedpods.crmbuild.dto.request.CreateProductRequest;
+import com.ceedpods.crmbuild.dto.request.UpdateProductRequest;
 import com.ceedpods.crmbuild.entity.product.DiscountAddOn;
 import com.ceedpods.crmbuild.entity.product.PricingPackage;
 import com.ceedpods.crmbuild.entity.product.PricingPackages;
 import com.ceedpods.crmbuild.entity.product.Product;
 import org.springframework.stereotype.Component;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -252,6 +252,94 @@ public class ProductMapper {
 
         return dtos.stream()
             .map(this::toEntity)
+            .collect(Collectors.toList());
+    }
+
+    /**
+     * Applies updates from UpdateProductRequest to existing Product entity
+     * Only updates fields that are provided (not null)
+     */
+    public void applyUpdates(Product product, UpdateProductRequest request) {
+        if (request == null) {
+            return;
+        }
+
+        // Update basic information fields if provided
+        UpdateProductRequest.BasicInformation basicInfo = request.getBasicInformation();
+        if (basicInfo != null) {
+            if (basicInfo.getProductName() != null) {
+                product.setProductName(basicInfo.getProductName());
+            }
+            if (basicInfo.getBasePrice() != null) {
+                product.setBasePrice(basicInfo.getBasePrice());
+            }
+            if (basicInfo.getKeyLearningOutcomes() != null) {
+                product.setKeyLearningOutcomes(basicInfo.getKeyLearningOutcomes());
+            }
+            if (basicInfo.getFormat() != null) {
+                product.setFormat(basicInfo.getFormat());
+            }
+            if (basicInfo.getDuration() != null) {
+                product.setDuration(basicInfo.getDuration());
+            }
+            if (basicInfo.getLevel() != null) {
+                product.setLevel(basicInfo.getLevel());
+            }
+            if (basicInfo.getInstructors() != null) {
+                product.setInstructors(basicInfo.getInstructors());
+            }
+        }
+
+        // Update pricing packages if provided
+        if (request.getPricingPackages() != null) {
+            product.setPricingPackages(mapUpdatePricingPackagesToEntity(request.getPricingPackages()));
+        }
+
+        // Update discounts and add-ons if provided
+        if (request.getDiscountsAddOns() != null) {
+            product.setDiscountsAddOns(mapUpdateDiscountsAddOnsToEntity(request.getDiscountsAddOns()));
+        }
+
+        // Update product status if provided
+        if (request.getProductStatus() != null) {
+            product.setProductStatus(request.getProductStatus());
+        }
+    }
+
+    private PricingPackages mapUpdatePricingPackagesToEntity(UpdateProductRequest.PricingPackagesRequest request) {
+        if (request == null) {
+            return null;
+        }
+
+        List<PricingPackage> packages = null;
+        if (request.getPackages() != null) {
+            packages = request.getPackages().stream()
+                .map(pkg -> PricingPackage.builder()
+                    .packageType(pkg.getPackageType())
+                    .description(pkg.getDescription())
+                    .price(pkg.getPrice())
+                    .commissionRate(pkg.getCommissionRate())
+                    .notes(pkg.getNotes())
+                    .build())
+                .collect(Collectors.toList());
+        }
+
+        return PricingPackages.builder()
+            .enabled(request.getEnabled())
+            .packages(packages)
+            .build();
+    }
+
+    private List<DiscountAddOn> mapUpdateDiscountsAddOnsToEntity(List<UpdateProductRequest.DiscountAddOnRequest> requests) {
+        if (requests == null) {
+            return null;
+        }
+
+        return requests.stream()
+            .map(item -> DiscountAddOn.builder()
+                .type(item.getType())
+                .description(item.getDescription())
+                .build())
             .collect(Collectors.toList());
     }
 }

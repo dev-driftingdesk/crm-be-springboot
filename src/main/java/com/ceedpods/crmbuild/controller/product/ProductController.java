@@ -1,10 +1,12 @@
 package com.ceedpods.crmbuild.controller.product;
 
 import com.ceedpods.crmbuild.dto.product.ProductDTO;
+import com.ceedpods.crmbuild.dto.product.ProductListResponse;
 import com.ceedpods.crmbuild.dto.request.CreateProductRequest;
 import com.ceedpods.crmbuild.dto.request.UpdateProductRequest;
 import com.ceedpods.crmbuild.dto.response.ApiResponse;
 import com.ceedpods.crmbuild.dto.response.CreateProductResponse;
+import com.ceedpods.crmbuild.dto.response.UpdateProductResponse;
 import com.ceedpods.crmbuild.security.CustomPermissionEvaluator;
 import com.ceedpods.crmbuild.security.RequirePermission;
 import com.ceedpods.crmbuild.service.product.ProductService;
@@ -55,19 +57,19 @@ public class ProductController {
     }
 
     /**
-     * Get all products with enhanced summary information
+     * Get all products with summary information
      */
     @Operation(
         summary = "Get All Products",
-        description = "Retrieves all products from the catalog with enhanced summary information including: " +
-                      "Product Name, Created User Name, In Deal Count, Base Price, Total Sales, and Revenue"
+        description = "Retrieves all products from the catalog with summary information including: " +
+                      "Product ID, Product Name, Created By (user info), In Deals count, Total Sales, and Revenue"
     )
     @GetMapping
     @RequirePermission("PRODUCT_VIEW_ALL")
-    public ResponseEntity<ApiResponse<List<ProductDTO>>> getAllProducts() {
+    public ResponseEntity<ApiResponse<List<ProductListResponse>>> getAllProducts() {
         try {
             log.info("Fetching all products");
-            List<ProductDTO> products = productService.getAllProducts();
+            List<ProductListResponse> products = productService.getAllProducts();
             return ResponseEntity.ok(ApiResponse.success(products));
         } catch (Exception e) {
             log.error("Error fetching products: {}", e.getMessage());
@@ -102,14 +104,14 @@ public class ProductController {
     @Operation(summary = "Update Product", description = "Updates an existing product. Requires PRODUCT_EDIT permission.")
     @PutMapping("/{id}")
     @RequirePermission("PRODUCT_EDIT")
-    public ResponseEntity<ApiResponse<ProductDTO>> updateProduct(
+    public ResponseEntity<ApiResponse<UpdateProductResponse>> updateProduct(
             @Parameter(description = "Product UUID", required = true) @PathVariable String id,
             @Valid @RequestBody UpdateProductRequest request,
             @Parameter(hidden = true) Authentication authentication) {
         try {
             log.info("Updating product with ID: {}", id);
-            ProductDTO product = productService.updateProduct(id, request);
-            return ResponseEntity.ok(ApiResponse.success("Product updated successfully", product));
+            UpdateProductResponse response = productService.updateProduct(id, request);
+            return ResponseEntity.ok(ApiResponse.success("Product updated successfully", response));
         } catch (Exception e) {
             log.error("Error updating product: {}", e.getMessage());
             return ResponseEntity.badRequest()
@@ -144,11 +146,11 @@ public class ProductController {
     @Operation(summary = "Search Products", description = "Searches products by name or other fields")
     @GetMapping("/search")
     @RequirePermission("PRODUCT_VIEW_ALL")
-    public ResponseEntity<ApiResponse<List<ProductDTO>>> searchProducts(
+    public ResponseEntity<ApiResponse<List<ProductListResponse>>> searchProducts(
             @Parameter(description = "Search query", required = true) @RequestParam String query) {
         try {
             log.info("Searching products with query: {}", query);
-            List<ProductDTO> products = productService.searchProducts(query);
+            List<ProductListResponse> products = productService.searchProducts(query);
             return ResponseEntity.ok(ApiResponse.success(products));
         } catch (Exception e) {
             log.error("Error searching products: {}", e.getMessage());

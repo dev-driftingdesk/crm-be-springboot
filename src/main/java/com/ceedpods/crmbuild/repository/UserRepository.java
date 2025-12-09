@@ -30,6 +30,9 @@ public interface UserRepository extends MongoRepository<User, String> {
     
     @Query("{ 'deleted': false }")
     List<User> findByDeletedFalse();
+
+    @Query("{ '_id': { '$in': ?0 }, 'deleted': false }")
+    List<User> findByIdInAndDeletedFalse(List<String> ids);
     
     @Query("{ 'enabled': true, 'deleted': false }")
     List<User> findByEnabledTrueAndDeletedFalse();

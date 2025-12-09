@@ -36,6 +36,9 @@ public interface DealRepository extends MongoRepository<Deal, String> {
     @Query(value = "{ 'productIds': { '$in': [?0] }, 'deleted': false }", count = true)
     long countByProductIdAndDeletedFalse(String productId);
 
+    @Query(value = "{ 'productIds': { '$in': ?0 }, 'deleted': false }")
+    List<Deal> findByProductIdsInAndDeletedFalse(List<String> productIds);
+
     @Query("{ 'salesReps.id': ?0, 'deleted': false }")
     List<Deal> findBySalesRepAndDeletedFalse(String salesRepId);
 
