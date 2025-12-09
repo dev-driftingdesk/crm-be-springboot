@@ -6,6 +6,7 @@ import com.fasterxml.jackson.annotation.JsonValue;
 public enum ProductStatus {
     ACTIVE("Active"),
     INACTIVE("Inactive"),
+    DRAFT("Draft"),
     DISCONTINUED("Discontinued"),
     OUT_OF_STOCK("Out of Stock"),
     COMING_SOON("Coming Soon");
@@ -44,7 +45,7 @@ public enum ProductStatus {
         // If no match found, throw exception with helpful message
         throw new IllegalArgumentException(
             "Invalid ProductStatus value: '" + value + "'. " +
-            "Accepted values are: ACTIVE, INACTIVE, DISCONTINUED, OUT_OF_STOCK, COMING_SOON"
+            "Accepted values are: ACTIVE, INACTIVE, DRAFT, DISCONTINUED, OUT_OF_STOCK, COMING_SOON"
         );
     }
 }
