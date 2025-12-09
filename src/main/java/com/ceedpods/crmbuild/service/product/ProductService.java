@@ -21,6 +21,10 @@ import com.ceedpods.crmbuild.service.auditLogService.AuditLogService;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.jwt.Jwt;
@@ -30,6 +34,7 @@ import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -45,6 +50,7 @@ public class ProductService {
     private final AuditLogService auditLogService;
     private final DealRepository dealRepository;
     private final UserRepository userRepository;
+    private final MongoTemplate mongoTemplate;
 
     /**
      * Get all products (excluding soft-deleted)
@@ -282,23 +288,20 @@ public class ProductService {
     }
 
     /**
-     * Delete product (soft delete)
+     * Delete product (hard delete - permanently removes from database)
      */
-    @Transactional
     public void deleteProduct(String id, String deletedBy) {
         log.info("Deleting product with ID: {}", id);
 
         // Find existing product
         Product product = productRepository.findById(id)
-            .filter(p -> !p.isDeleted())
             .orElseThrow(() -> new ResourceNotFoundException("Product not found with ID: " + id));
 
         // Store product name before deletion for audit log
         String productName = product.getProductName();
 
-        // Soft delete
-        product.markAsDeleted(deletedBy);
-        productRepository.save(product);
+        // Hard delete - permanently remove from database
+        productRepository.deleteById(id);
 
         log.info("Successfully deleted product with ID: {}", id);
 
