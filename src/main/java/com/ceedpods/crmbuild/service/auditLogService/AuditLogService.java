@@ -12,6 +12,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Service;
@@ -117,7 +118,17 @@ public class AuditLogService {
     }
 
     /**
-     * Log product creation
+     * Log product creation (async for better performance)
+     */
+    @Async
+    public void logProductCreatedAsync(String username, String userId, String userEmail,
+                                       String productId, String productName, String ipAddress) {
+        logAuditInternal(username, userId, userEmail, AuditAction.CREATED, AuditEntityType.PRODUCT,
+                productId, productName, "Product created: " + productName, ipAddress);
+    }
+
+    /**
+     * Log product creation (sync - legacy support)
      */
     public void logProductCreated(Authentication authentication, String productId, String productName) {
         logAudit(authentication, AuditAction.CREATED, AuditEntityType.PRODUCT,
@@ -125,7 +136,17 @@ public class AuditLogService {
     }
 
     /**
-     * Log product update
+     * Log product update (async for better performance)
+     */
+    @Async
+    public void logProductUpdatedAsync(String username, String userId, String userEmail,
+                                       String productId, String productName, String ipAddress) {
+        logAuditInternal(username, userId, userEmail, AuditAction.UPDATED, AuditEntityType.PRODUCT,
+                productId, productName, "Product updated: " + productName, ipAddress);
+    }
+
+    /**
+     * Log product update (sync - legacy support)
      */
     public void logProductUpdated(Authentication authentication, String productId, String productName) {
         logAudit(authentication, AuditAction.UPDATED, AuditEntityType.PRODUCT,
@@ -133,11 +154,50 @@ public class AuditLogService {
     }
 
     /**
-     * Log product deletion
+     * Log product deletion (async for better performance)
+     */
+    @Async
+    public void logProductDeletedAsync(String username, String userId, String userEmail,
+                                       String productId, String productName, String ipAddress) {
+        logAuditInternal(username, userId, userEmail, AuditAction.DELETED, AuditEntityType.PRODUCT,
+                productId, productName, "Product deleted: " + productName, ipAddress);
+    }
+
+    /**
+     * Log product deletion (sync - legacy support)
      */
     public void logProductDeleted(Authentication authentication, String productId, String productName) {
         logAudit(authentication, AuditAction.DELETED, AuditEntityType.PRODUCT,
                 productId, productName, "Product deleted: " + productName);
+    }
+
+    /**
+     * Internal audit log method with explicit IP address (for async calls)
+     */
+    private void logAuditInternal(String username, String userId, String userEmail,
+                                  AuditAction action, AuditEntityType entityType,
+                                  String entityId, String entityName, String details, String ipAddress) {
+        try {
+            AuditLog auditLog = AuditLog.builder()
+                    .id(UUID.randomUUID().toString())
+                    .username(username)
+                    .userId(userId)
+                    .userEmail(userEmail)
+                    .action(action.name())
+                    .entityType(entityType.name())
+                    .entityId(entityId)
+                    .entityName(entityName)
+                    .details(details)
+                    .ipAddress(ipAddress)
+                    .timestamp(LocalDateTime.now())
+                    .status("SUCCESS")
+                    .build();
+
+            auditLogRepository.save(auditLog);
+            log.debug("Audit log created: {} - {} - {} - {}", username, action, entityType, entityId);
+        } catch (Exception e) {
+            log.error("Failed to create audit log: {}", e.getMessage(), e);
+        }
     }
 
     /**

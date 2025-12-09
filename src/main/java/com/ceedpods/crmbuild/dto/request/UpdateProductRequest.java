@@ -1,6 +1,11 @@
 package com.ceedpods.crmbuild.dto.request;
 
+import com.ceedpods.crmbuild.enums.DiscountAddOnType;
+import com.ceedpods.crmbuild.enums.PackageType;
+import com.ceedpods.crmbuild.enums.ProductFormat;
+import com.ceedpods.crmbuild.enums.ProductLevel;
 import com.ceedpods.crmbuild.enums.ProductStatus;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
@@ -9,6 +14,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 @Data
 @Builder
@@ -16,20 +22,74 @@ import java.math.BigDecimal;
 @AllArgsConstructor
 public class UpdateProductRequest {
 
-    @Size(max = 50, message = "Product ID must not exceed 50 characters")
-    private String productId;
-
+    // ===== Basic Information =====
     @Size(max = 200, message = "Product name must not exceed 200 characters")
     private String productName;
 
-    @Size(max = 1000, message = "Product description must not exceed 1000 characters")
-    private String productDescription;
+    @DecimalMin(value = "0.0", inclusive = true, message = "Base price must be greater than or equal to 0")
+    private BigDecimal basePrice;
 
-    @Size(max = 1000, message = "Product sub-description must not exceed 1000 characters")
-    private String productSubDescription;
+    @Size(max = 2000, message = "Key learning outcomes must not exceed 2000 characters")
+    private String keyLearningOutcomes;
 
-    @DecimalMin(value = "0.0", inclusive = true, message = "Product value must be greater than or equal to 0")
-    private BigDecimal productValue;
+    private ProductFormat format;
 
+    @Size(max = 100, message = "Duration must not exceed 100 characters")
+    private String duration;
+
+    private ProductLevel level;
+
+    private List<String> instructors;
+
+    // ===== Pricing & Packages =====
+    @Valid
+    private PricingPackagesUpdateRequest pricingPackages;
+
+    // ===== Discounts & Add-ons =====
+    private List<@Valid DiscountAddOnUpdateRequest> discountsAddOns;
+
+    // ===== Product Status =====
     private ProductStatus productStatus;
+
+    // ===== Nested DTOs =====
+
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class PricingPackagesUpdateRequest {
+        private Boolean enabled;
+        private List<@Valid PackageUpdateRequest> packages;
+    }
+
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class PackageUpdateRequest {
+        private PackageType packageType;
+
+        @Size(max = 500, message = "Package description must not exceed 500 characters")
+        private String description;
+
+        @DecimalMin(value = "0.0", inclusive = true, message = "Package price must be greater than or equal to 0")
+        private BigDecimal price;
+
+        @DecimalMin(value = "0.0", inclusive = true, message = "Commission rate must be greater than or equal to 0")
+        private BigDecimal commissionRate;
+
+        @Size(max = 500, message = "Notes must not exceed 500 characters")
+        private String notes;
+    }
+
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class DiscountAddOnUpdateRequest {
+        private DiscountAddOnType type;
+
+        @Size(max = 500, message = "Description must not exceed 500 characters")
+        private String description;
+    }
 }

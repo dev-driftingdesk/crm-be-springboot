@@ -4,6 +4,7 @@ import com.ceedpods.crmbuild.dto.product.ProductDTO;
 import com.ceedpods.crmbuild.dto.request.CreateProductRequest;
 import com.ceedpods.crmbuild.dto.request.UpdateProductRequest;
 import com.ceedpods.crmbuild.dto.response.ApiResponse;
+import com.ceedpods.crmbuild.dto.response.CreateProductResponse;
 import com.ceedpods.crmbuild.security.CustomPermissionEvaluator;
 import com.ceedpods.crmbuild.security.RequirePermission;
 import com.ceedpods.crmbuild.service.product.ProductService;
@@ -35,17 +36,17 @@ public class ProductController {
     /**
      * Create a new product (Admin only)
      */
-    @Operation(summary = "Create Product", description = "Creates a new product in the catalog. Requires PRODUCT_CREATE permission.")
+    @Operation(summary = "Create Product", description = "Creates a new product in the catalog with pricing packages and discounts/add-ons. Requires PRODUCT_CREATE permission.")
     @PostMapping
     @RequirePermission("PRODUCT_CREATE")
-    public ResponseEntity<ApiResponse<ProductDTO>> createProduct(
+    public ResponseEntity<ApiResponse<CreateProductResponse>> createProduct(
             @Valid @RequestBody CreateProductRequest request,
             @Parameter(hidden = true) Authentication authentication) {
         try {
-            log.info("Creating product: {}", request.getProductName());
-            ProductDTO product = productService.createProduct(request);
+            log.info("Creating product: {}", request.getBasicInformation().getProductName());
+            CreateProductResponse response = productService.createProduct(request);
             return ResponseEntity.status(HttpStatus.CREATED)
-                .body(ApiResponse.success("Product created successfully", product));
+                .body(ApiResponse.success("Product created successfully", response));
         } catch (Exception e) {
             log.error("Error creating product: {}", e.getMessage());
             return ResponseEntity.badRequest()
