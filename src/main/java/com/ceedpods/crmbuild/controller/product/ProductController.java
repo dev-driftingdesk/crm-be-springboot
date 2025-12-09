@@ -6,9 +6,11 @@ import com.ceedpods.crmbuild.dto.request.CreateProductRequest;
 import com.ceedpods.crmbuild.dto.request.UpdateProductRequest;
 import com.ceedpods.crmbuild.dto.response.ApiResponse;
 import com.ceedpods.crmbuild.dto.response.CreateProductResponse;
+import com.ceedpods.crmbuild.dto.response.ProductImportResponse;
 import com.ceedpods.crmbuild.dto.response.UpdateProductResponse;
 import com.ceedpods.crmbuild.security.CustomPermissionEvaluator;
 import com.ceedpods.crmbuild.security.RequirePermission;
+import com.ceedpods.crmbuild.service.product.ProductCsvImportService;
 import com.ceedpods.crmbuild.service.product.ProductService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -21,6 +23,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -33,6 +36,7 @@ import java.util.List;
 public class ProductController {
 
     private final ProductService productService;
+    private final ProductCsvImportService productCsvImportService;
     private final CustomPermissionEvaluator permissionEvaluator;
 
     /**
@@ -173,6 +177,35 @@ public class ProductController {
             log.error("Error fetching product count: {}", e.getMessage());
             return ResponseEntity.badRequest()
                 .body(ApiResponse.error("Failed to fetch product count: " + e.getMessage()));
+        }
+    }
+
+    /**
+     * Import products from CSV file
+     */
+    @Operation(
+        summary = "Import Products from CSV",
+        description = "Bulk import products using a CSV file. " +
+                      "CSV must contain headers: productName, basePrice, keyLearningOutcomes, format, duration, level, instructors, productStatus. " +
+                      "All validation rules apply same as Create Product. Max file size: 5MB."
+    )
+    @PostMapping(value = "/import", consumes = "multipart/form-data")
+    @RequirePermission("PRODUCT_CREATE")
+    public ResponseEntity<ApiResponse<ProductImportResponse>> importProducts(
+            @Parameter(description = "CSV file containing product data", required = true)
+            @RequestParam("file") MultipartFile file) {
+        try {
+            log.info("Importing products from CSV file: {}", file.getOriginalFilename());
+            ProductImportResponse response = productCsvImportService.importProductsFromCsv(file);
+
+            String message = String.format("Products imported successfully. Total: %d, Imported: %d, Failed: %d",
+                response.getTotalRows(), response.getImported(), response.getFailed());
+
+            return ResponseEntity.ok(ApiResponse.success(message, response));
+        } catch (Exception e) {
+            log.error("Error importing products from CSV: {}", e.getMessage());
+            return ResponseEntity.badRequest()
+                .body(ApiResponse.error("Failed to import products: " + e.getMessage()));
         }
     }
 }
