@@ -5,6 +5,7 @@ import com.ceedpods.crmbuild.dto.product.ProductListResponse;
 import com.ceedpods.crmbuild.dto.request.CreateProductRequest;
 import com.ceedpods.crmbuild.dto.request.UpdateProductRequest;
 import com.ceedpods.crmbuild.dto.response.CreateProductResponse;
+import com.ceedpods.crmbuild.dto.response.UpdateProductResponse;
 import com.ceedpods.crmbuild.entity.product.DiscountAddOn;
 import com.ceedpods.crmbuild.entity.product.PricingPackage;
 import com.ceedpods.crmbuild.entity.product.PricingPackages;
@@ -233,102 +234,51 @@ public class ProductService {
 
     /**
      * Update existing product
+     * Optimized: Uses async audit logging for better response time
      */
     @Transactional
-    public ProductDTO updateProduct(String id, UpdateProductRequest request) {
+    public UpdateProductResponse updateProduct(String id, UpdateProductRequest request) {
         log.info("Updating product with ID: {}", id);
+
+        // Extract audit context early (must be done in request thread before any async operations)
+        AuditContext auditContext = extractAuditContext();
+
+        // Validate pricing packages if enabled
+        UpdateProductRequest.PricingPackagesRequest pricingPackagesReq = request.getPricingPackages();
+        if (pricingPackagesReq != null &&
+            Boolean.TRUE.equals(pricingPackagesReq.getEnabled()) &&
+            (pricingPackagesReq.getPackages() == null || pricingPackagesReq.getPackages().isEmpty())) {
+            throw new BadRequestException("Packages are required when pricing packages is enabled");
+        }
 
         // Find existing product
         Product product = productRepository.findById(id)
             .filter(p -> !p.isDeleted())
             .orElseThrow(() -> new ResourceNotFoundException("Product not found with ID: " + id));
 
-        // Update basic information fields if provided
-        if (request.getProductName() != null) {
-            product.setProductName(request.getProductName());
-        }
-        if (request.getBasePrice() != null) {
-            product.setBasePrice(request.getBasePrice());
-        }
-        if (request.getKeyLearningOutcomes() != null) {
-            product.setKeyLearningOutcomes(request.getKeyLearningOutcomes());
-        }
-        if (request.getFormat() != null) {
-            product.setFormat(request.getFormat());
-        }
-        if (request.getDuration() != null) {
-            product.setDuration(request.getDuration());
-        }
-        if (request.getLevel() != null) {
-            product.setLevel(request.getLevel());
-        }
-        if (request.getInstructors() != null) {
-            product.setInstructors(request.getInstructors());
-        }
-
-        // Update pricing packages if provided
-        if (request.getPricingPackages() != null) {
-            PricingPackages pricingPackages = mapUpdatePricingPackagesToEntity(request.getPricingPackages());
-            product.setPricingPackages(pricingPackages);
-        }
-
-        // Update discounts and add-ons if provided
-        if (request.getDiscountsAddOns() != null) {
-            List<DiscountAddOn> discountsAddOns = mapUpdateDiscountsAddOnsToEntity(request.getDiscountsAddOns());
-            product.setDiscountsAddOns(discountsAddOns);
-        }
-
-        // Update product status if provided
-        if (request.getProductStatus() != null) {
-            product.setProductStatus(request.getProductStatus());
-        }
+        // Apply updates using mapper (separation of concerns)
+        productMapper.applyUpdates(product, request);
 
         // Save updated product (updatedAt and updatedBy are automatically handled by Spring Data Auditing)
         Product updatedProduct = productRepository.save(product);
-        log.info("Successfully updated product with ID: {}", updatedProduct.getId());
+        String productId = updatedProduct.getId();
+        String productName = updatedProduct.getProductName();
+        log.info("Successfully updated product with ID: {}", productId);
 
-        // Log audit event
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        auditLogService.logProductUpdated(authentication, updatedProduct.getId(), updatedProduct.getProductName());
+        // Log audit event asynchronously (non-blocking)
+        auditLogService.logProductUpdatedAsync(
+            auditContext.username,
+            auditContext.userId,
+            auditContext.userEmail,
+            productId,
+            productName,
+            auditContext.ipAddress
+        );
 
-        return productMapper.toDTO(updatedProduct);
-    }
-
-    private PricingPackages mapUpdatePricingPackagesToEntity(UpdateProductRequest.PricingPackagesUpdateRequest request) {
-        if (request == null) {
-            return null;
-        }
-
-        List<PricingPackage> packages = null;
-        if (request.getPackages() != null) {
-            packages = request.getPackages().stream()
-                .map(pkg -> PricingPackage.builder()
-                    .packageType(pkg.getPackageType())
-                    .description(pkg.getDescription())
-                    .price(pkg.getPrice())
-                    .commissionRate(pkg.getCommissionRate())
-                    .notes(pkg.getNotes())
-                    .build())
-                .collect(Collectors.toList());
-        }
-
-        return PricingPackages.builder()
-            .enabled(request.getEnabled())
-            .packages(packages)
+        return UpdateProductResponse.builder()
+            .productId(productId)
+            .updatedAt(updatedProduct.getUpdatedAt())
             .build();
-    }
-
-    private List<DiscountAddOn> mapUpdateDiscountsAddOnsToEntity(List<UpdateProductRequest.DiscountAddOnUpdateRequest> requests) {
-        if (requests == null) {
-            return null;
-        }
-
-        return requests.stream()
-            .map(item -> DiscountAddOn.builder()
-                .type(item.getType())
-                .description(item.getDescription())
-                .build())
-            .collect(Collectors.toList());
     }
 
     /**

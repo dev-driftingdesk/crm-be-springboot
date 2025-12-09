@@ -22,33 +22,14 @@ import java.util.List;
 @AllArgsConstructor
 public class UpdateProductRequest {
 
-    // ===== Basic Information =====
-    @Size(max = 200, message = "Product name must not exceed 200 characters")
-    private String productName;
-
-    @DecimalMin(value = "0.0", inclusive = true, message = "Base price must be greater than or equal to 0")
-    private BigDecimal basePrice;
-
-    @Size(max = 2000, message = "Key learning outcomes must not exceed 2000 characters")
-    private String keyLearningOutcomes;
-
-    private ProductFormat format;
-
-    @Size(max = 100, message = "Duration must not exceed 100 characters")
-    private String duration;
-
-    private ProductLevel level;
-
-    private List<String> instructors;
-
-    // ===== Pricing & Packages =====
     @Valid
-    private PricingPackagesUpdateRequest pricingPackages;
+    private BasicInformation basicInformation;
 
-    // ===== Discounts & Add-ons =====
-    private List<@Valid DiscountAddOnUpdateRequest> discountsAddOns;
+    @Valid
+    private PricingPackagesRequest pricingPackages;
 
-    // ===== Product Status =====
+    private List<@Valid DiscountAddOnRequest> discountsAddOns;
+
     private ProductStatus productStatus;
 
     // ===== Nested DTOs =====
@@ -57,16 +38,42 @@ public class UpdateProductRequest {
     @Builder
     @NoArgsConstructor
     @AllArgsConstructor
-    public static class PricingPackagesUpdateRequest {
-        private Boolean enabled;
-        private List<@Valid PackageUpdateRequest> packages;
+    public static class BasicInformation {
+
+        @Size(max = 200, message = "Product name must not exceed 200 characters")
+        private String productName;
+
+        @DecimalMin(value = "0.0", inclusive = true, message = "Base price must be greater than or equal to 0")
+        private BigDecimal basePrice;
+
+        @Size(max = 2000, message = "Key learning outcomes must not exceed 2000 characters")
+        private String keyLearningOutcomes;
+
+        private ProductFormat format;
+
+        @Size(max = 100, message = "Duration must not exceed 100 characters")
+        private String duration;
+
+        private ProductLevel level;
+
+        private List<String> instructors;
     }
 
     @Data
     @Builder
     @NoArgsConstructor
     @AllArgsConstructor
-    public static class PackageUpdateRequest {
+    public static class PricingPackagesRequest {
+        private Boolean enabled;
+        private List<@Valid PackageRequest> packages;
+    }
+
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class PackageRequest {
+
         private PackageType packageType;
 
         @Size(max = 500, message = "Package description must not exceed 500 characters")
@@ -86,7 +93,8 @@ public class UpdateProductRequest {
     @Builder
     @NoArgsConstructor
     @AllArgsConstructor
-    public static class DiscountAddOnUpdateRequest {
+    public static class DiscountAddOnRequest {
+
         private DiscountAddOnType type;
 
         @Size(max = 500, message = "Description must not exceed 500 characters")

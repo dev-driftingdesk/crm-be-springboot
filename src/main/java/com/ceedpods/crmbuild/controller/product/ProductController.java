@@ -6,6 +6,7 @@ import com.ceedpods.crmbuild.dto.request.CreateProductRequest;
 import com.ceedpods.crmbuild.dto.request.UpdateProductRequest;
 import com.ceedpods.crmbuild.dto.response.ApiResponse;
 import com.ceedpods.crmbuild.dto.response.CreateProductResponse;
+import com.ceedpods.crmbuild.dto.response.UpdateProductResponse;
 import com.ceedpods.crmbuild.security.CustomPermissionEvaluator;
 import com.ceedpods.crmbuild.security.RequirePermission;
 import com.ceedpods.crmbuild.service.product.ProductService;
@@ -103,14 +104,14 @@ public class ProductController {
     @Operation(summary = "Update Product", description = "Updates an existing product. Requires PRODUCT_EDIT permission.")
     @PutMapping("/{id}")
     @RequirePermission("PRODUCT_EDIT")
-    public ResponseEntity<ApiResponse<ProductDTO>> updateProduct(
+    public ResponseEntity<ApiResponse<UpdateProductResponse>> updateProduct(
             @Parameter(description = "Product UUID", required = true) @PathVariable String id,
             @Valid @RequestBody UpdateProductRequest request,
             @Parameter(hidden = true) Authentication authentication) {
         try {
             log.info("Updating product with ID: {}", id);
-            ProductDTO product = productService.updateProduct(id, request);
-            return ResponseEntity.ok(ApiResponse.success("Product updated successfully", product));
+            UpdateProductResponse response = productService.updateProduct(id, request);
+            return ResponseEntity.ok(ApiResponse.success("Product updated successfully", response));
         } catch (Exception e) {
             log.error("Error updating product: {}", e.getMessage());
             return ResponseEntity.badRequest()
