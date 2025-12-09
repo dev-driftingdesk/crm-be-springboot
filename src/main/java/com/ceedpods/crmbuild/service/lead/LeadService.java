@@ -129,8 +129,8 @@ public class LeadService {
                 if (deal != null && deal.getProductIds() != null) {
                     for (String productId : deal.getProductIds()) {
                         Product product = productMap.get(productId);
-                        if (product != null && product.getProductValue() != null) {
-                            totalValue = totalValue.add(product.getProductValue());
+                        if (product != null && product.getBasePrice() != null) {
+                            totalValue = totalValue.add(product.getBasePrice());
                         }
                     }
                 }
@@ -263,13 +263,13 @@ public class LeadService {
                 for (String productId : deal.getProductIds()) {
                     Product product = productMap.get(productId);
                     if (product != null) {
-                        if (product.getProductValue() != null) {
-                            dealValue = dealValue.add(product.getProductValue());
+                        if (product.getBasePrice() != null) {
+                            dealValue = dealValue.add(product.getBasePrice());
                         }
                         productSummaries.add(DealDetailDTO.ProductSummaryDTO.builder()
                             .id(product.getId())
                             .productName(product.getProductName())
-                            .productValue(product.getProductValue())
+                            .productValue(product.getBasePrice())
                             .productStatus(product.getProductStatus() != null ? product.getProductStatus().getDisplayName() : null)
                             .build());
                     }
