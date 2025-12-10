@@ -7,6 +7,8 @@ import org.springframework.data.mongodb.repository.MongoRepository;
 import org.springframework.data.mongodb.repository.Query;
 import org.springframework.stereotype.Repository;
 
+import org.springframework.data.domain.Sort;
+
 import java.util.List;
 import java.util.Optional;
 
@@ -16,6 +18,9 @@ public interface ProductRepository extends MongoRepository<Product, String> {
 
     @Query("{ 'deleted': false }")
     List<Product> findByDeletedFalse();
+
+    @Query("{ 'deleted': false }")
+    List<Product> findByDeletedFalse(Sort sort);
 
     // Use Spring Data derived query instead of @Query for count methods
     long countByDeletedFalse();

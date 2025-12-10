@@ -16,7 +16,7 @@ import java.math.BigDecimal;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@JsonPropertyOrder({"productId", "productName", "createdBy", "inDeals", "totalSales", "revenue"})
+@JsonPropertyOrder({"productId", "productName", "basePrice", "createdBy", "inDeals", "totalSales", "revenue"})
 @Schema(description = "Product list response")
 public class ProductListResponse {
 
@@ -25,6 +25,9 @@ public class ProductListResponse {
 
     @Schema(description = "Name of the product", example = "Sales Training Program")
     private String productName;
+
+    @Schema(description = "Base price of the product", example = "299.99")
+    private BigDecimal basePrice;
 
     @Schema(description = "Information about the user who created the product")
     private CreatedBy createdBy;

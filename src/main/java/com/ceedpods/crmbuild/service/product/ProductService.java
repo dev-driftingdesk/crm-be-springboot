@@ -21,6 +21,7 @@ import com.ceedpods.crmbuild.service.auditLogService.AuditLogService;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
@@ -55,11 +56,14 @@ public class ProductService {
     /**
      * Get all products (excluding soft-deleted)
      * Optimized: Uses batch queries to minimize database round-trips
+     * Returns products sorted by createdAt descending (newest first)
      */
     public List<ProductListResponse> getAllProducts() {
         log.info("Fetching all products");
 
-        List<Product> products = productRepository.findByDeletedFalse();
+        // Sort by createdAt descending so newly created products appear first
+        Sort sort = Sort.by(Sort.Direction.DESC, "createdAt");
+        List<Product> products = productRepository.findByDeletedFalse(sort);
 
         if (products.isEmpty()) {
             log.info("No products found");
@@ -136,6 +140,7 @@ public class ProductService {
         return ProductListResponse.builder()
             .productId(product.getId())
             .productName(product.getProductName())
+            .basePrice(basePrice)
             .createdBy(createdBy)
             .inDeals(inDeals)
             .totalSales(totalSales)
