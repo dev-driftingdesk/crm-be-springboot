@@ -144,6 +144,10 @@ public final class AppConstants {
         public static final String COLLECTION_LEAD_NOTES = "lead_notes";
         public static final String COLLECTION_AGENT_CREDENTIALS = "agent_credentials";
         public static final String COLLECTION_MESSAGES = "messages";
+        public static final String COLLECTION_DEVICE_TOKENS = "device_tokens";
+        public static final String COLLECTION_NOTIFICATIONS = "notifications";
+        public static final String COLLECTION_SCHEDULED_NOTIFICATIONS = "scheduled_notifications";
+        public static final String COLLECTION_USER_NOTIFICATION_STATUS = "user_notification_status";
     }
 
     // ==================== Response Messages ====================
