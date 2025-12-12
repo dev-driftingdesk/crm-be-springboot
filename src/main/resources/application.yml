@@ -105,6 +105,11 @@ google:
 deepgram:
   api-key: ${DEEPGRAM_API_KEY:}
 
+# Firebase Cloud Messaging Configuration
+# Credentials are now loaded from MongoDB collection: firebase_configurations
+firebase:
+  enabled: ${FIREBASE_ENABLED:true}
+
 # Application Configuration
 app:
   url: ${APP_URL:http://localhost:8084}
