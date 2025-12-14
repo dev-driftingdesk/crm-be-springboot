@@ -1,9 +1,8 @@
 package com.ceedpods.crmbuild.dto.request;
 
+import com.ceedpods.crmbuild.dto.deal.DealProduct;
 import com.ceedpods.crmbuild.dto.deal.SalesRepAssignment;
-import com.ceedpods.crmbuild.enums.DealStatus;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
@@ -13,33 +12,34 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.math.BigDecimal;
 import java.util.List;
 
+/**
+ * Request DTO for creating a new deal.
+ * Note: dealId will be auto-generated as UUID by the service layer.
+ * Note: dealValue will be calculated from products in the service layer.
+ */
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
 public class CreateDealRequest {
 
-    // Note: dealId will be auto-generated as UUID by the service layer
-
     @NotBlank(message = "Deal name is required")
     @Size(max = 200, message = "Deal name must not exceed 200 characters")
     private String dealName;
 
-    private DealStatus status; // Optional - defaults to OPEN if not provided
-
-    @DecimalMin(value = "0.0", message = "Commission must be a positive value")
-    private BigDecimal commission; // Optional - commission amount for this deal
-
-    @NotNull(message = "Product IDs are required")
-    @NotEmpty(message = "At least one product ID is required")
-    private List<String> productIds; // List of product IDs (one or more required)
-
-    @Valid
-    private List<SalesRepAssignment> salesReps; // List of sales rep assignments with id and position (optional)
-
+    @NotBlank(message = "Lead ID is required")
     @Size(max = 50, message = "Lead ID must not exceed 50 characters")
-    private String leadId; // Single lead ID (optional)
+    private String leadId; // Associated lead ID (required)
+
+    @NotNull(message = "Sales representatives are required")
+    @NotEmpty(message = "At least one sales representative is required")
+    @Valid
+    private List<SalesRepAssignment> salesRepresentatives; // Agents assigned to deal (required)
+
+    @NotNull(message = "Products are required")
+    @NotEmpty(message = "At least one product is required")
+    @Valid
+    private List<DealProduct> products; // Products in the deal (required)
 }

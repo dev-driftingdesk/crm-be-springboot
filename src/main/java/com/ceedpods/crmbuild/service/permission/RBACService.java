@@ -111,7 +111,13 @@ public class RBACService {
         managerPermissions.add(UserRolePermission.create(UserRole.MANAGER, Permission.DEAL_CLOSE, PermissionScope.TEAM));
         managerPermissions.add(UserRolePermission.create(UserRole.MANAGER, Permission.DEAL_REOPEN, PermissionScope.TEAM));
         managerPermissions.add(UserRolePermission.create(UserRole.MANAGER, Permission.DEAL_VIEW_COMMISSION, PermissionScope.TEAM));
-        
+
+        // Deal Notes - Team scope
+        managerPermissions.add(UserRolePermission.create(UserRole.MANAGER, Permission.DEAL_NOTE_CREATE, PermissionScope.ALL));
+        managerPermissions.add(UserRolePermission.create(UserRole.MANAGER, Permission.DEAL_NOTE_VIEW_ALL, PermissionScope.TEAM));
+        managerPermissions.add(UserRolePermission.create(UserRole.MANAGER, Permission.DEAL_NOTE_EDIT, PermissionScope.TEAM));
+        managerPermissions.add(UserRolePermission.create(UserRole.MANAGER, Permission.DEAL_NOTE_DELETE, PermissionScope.TEAM));
+
         // Communication - Team scope
         managerPermissions.add(UserRolePermission.create(UserRole.MANAGER, Permission.CALL_MAKE, PermissionScope.ALL));
         managerPermissions.add(UserRolePermission.create(UserRole.MANAGER, Permission.CALL_VIEW_HISTORY, PermissionScope.TEAM));
@@ -278,7 +284,13 @@ public class RBACService {
         salesRepPermissions.add(UserRolePermission.create(UserRole.SALES_REP, Permission.DEAL_VIEW_HISTORY, PermissionScope.OWN));
         salesRepPermissions.add(UserRolePermission.create(UserRole.SALES_REP, Permission.DEAL_CLOSE, PermissionScope.OWN));
         salesRepPermissions.add(UserRolePermission.create(UserRole.SALES_REP, Permission.DEAL_VIEW_COMMISSION, PermissionScope.OWN));
-        
+
+        // Deal Notes - Own scope
+        salesRepPermissions.add(UserRolePermission.create(UserRole.SALES_REP, Permission.DEAL_NOTE_CREATE, PermissionScope.ALL));
+        salesRepPermissions.add(UserRolePermission.create(UserRole.SALES_REP, Permission.DEAL_NOTE_VIEW_ALL, PermissionScope.OWN));
+        salesRepPermissions.add(UserRolePermission.create(UserRole.SALES_REP, Permission.DEAL_NOTE_EDIT, PermissionScope.OWN));
+        salesRepPermissions.add(UserRolePermission.create(UserRole.SALES_REP, Permission.DEAL_NOTE_DELETE, PermissionScope.OWN));
+
         // Communication - Own scope
         salesRepPermissions.add(UserRolePermission.create(UserRole.SALES_REP, Permission.CALL_MAKE, PermissionScope.ALL));
         salesRepPermissions.add(UserRolePermission.create(UserRole.SALES_REP, Permission.CALL_VIEW_HISTORY, PermissionScope.OWN));

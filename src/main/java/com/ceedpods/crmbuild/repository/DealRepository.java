@@ -30,17 +30,19 @@ public interface DealRepository extends MongoRepository<Deal, String> {
     @Query(value = "{ 'leadId': ?0, 'deleted': false }", count = true)
     long countByLeadIdAndDeletedFalse(String leadId);
 
-    @Query("{ 'productIds': { '$in': [?0] }, 'deleted': false }")
+    // Query by product ID in the products array (products.productId)
+    @Query("{ 'products.productId': ?0, 'deleted': false }")
     List<Deal> findByProductIdAndDeletedFalse(String productId);
 
-    @Query(value = "{ 'productIds': { '$in': [?0] }, 'deleted': false }", count = true)
+    @Query(value = "{ 'products.productId': ?0, 'deleted': false }", count = true)
     long countByProductIdAndDeletedFalse(String productId);
 
-    @Query(value = "{ 'productIds': { '$in': ?0 }, 'deleted': false }")
+    @Query(value = "{ 'products.productId': { '$in': ?0 }, 'deleted': false }")
     List<Deal> findByProductIdsInAndDeletedFalse(List<String> productIds);
 
-    @Query("{ 'salesReps.id': ?0, 'deleted': false }")
-    List<Deal> findBySalesRepAndDeletedFalse(String salesRepId);
+    // Query by sales representative user ID (salesRepresentatives.userId)
+    @Query("{ 'salesRepresentatives.userId': ?0, 'deleted': false }")
+    List<Deal> findBySalesRepAndDeletedFalse(String salesRepUserId);
 
     @Query("{ '$or': [ " +
            "{ 'dealName': { '$regex': ?0, '$options': 'i' } }, " +

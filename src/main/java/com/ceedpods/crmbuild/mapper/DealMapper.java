@@ -1,11 +1,11 @@
 package com.ceedpods.crmbuild.mapper;
 
 import com.ceedpods.crmbuild.dto.deal.DealDTO;
+import com.ceedpods.crmbuild.dto.deal.DealProduct;
 import com.ceedpods.crmbuild.dto.deal.SalesRepAssignment;
 import com.ceedpods.crmbuild.entity.deal.Deal;
 import org.springframework.stereotype.Component;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -17,13 +17,25 @@ public class DealMapper {
             return null;
         }
 
-        // Create a copy of salesReps list to avoid shared references
+        // Create a copy of salesRepresentatives list to avoid shared references
         List<SalesRepAssignment> salesRepsCopy = null;
-        if (entity.getSalesReps() != null) {
-            salesRepsCopy = entity.getSalesReps().stream()
+        if (entity.getSalesRepresentatives() != null) {
+            salesRepsCopy = entity.getSalesRepresentatives().stream()
                 .map(sr -> SalesRepAssignment.builder()
-                    .id(sr.getId())
-                    .position(sr.getPosition())
+                    .userId(sr.getUserId())
+                    .role(sr.getRole())
+                    .build())
+                .collect(Collectors.toList());
+        }
+
+        // Create a copy of products list to avoid shared references
+        List<DealProduct> productsCopy = null;
+        if (entity.getProducts() != null) {
+            productsCopy = entity.getProducts().stream()
+                .map(p -> DealProduct.builder()
+                    .productId(p.getProductId())
+                    .packageType(p.getPackageType())
+                    .quantity(p.getQuantity())
                     .build())
                 .collect(Collectors.toList());
         }
@@ -32,9 +44,10 @@ public class DealMapper {
             .id(entity.getId())
             .dealName(entity.getDealName())
             .status(entity.getStatus())
+            .dealValue(entity.getDealValue())
             .commission(entity.getCommission())
-            .productIds(entity.getProductIds() != null ? new ArrayList<>(entity.getProductIds()) : null)
-            .salesReps(salesRepsCopy)
+            .products(productsCopy)
+            .salesRepresentatives(salesRepsCopy)
             .leadId(entity.getLeadId())
             .build();
 
@@ -55,13 +68,25 @@ public class DealMapper {
             return null;
         }
 
-        // Create a copy of salesReps list to avoid shared references
+        // Create a copy of salesRepresentatives list to avoid shared references
         List<SalesRepAssignment> salesRepsCopy = null;
-        if (dto.getSalesReps() != null) {
-            salesRepsCopy = dto.getSalesReps().stream()
+        if (dto.getSalesRepresentatives() != null) {
+            salesRepsCopy = dto.getSalesRepresentatives().stream()
                 .map(sr -> SalesRepAssignment.builder()
-                    .id(sr.getId())
-                    .position(sr.getPosition())
+                    .userId(sr.getUserId())
+                    .role(sr.getRole())
+                    .build())
+                .collect(Collectors.toList());
+        }
+
+        // Create a copy of products list to avoid shared references
+        List<DealProduct> productsCopy = null;
+        if (dto.getProducts() != null) {
+            productsCopy = dto.getProducts().stream()
+                .map(p -> DealProduct.builder()
+                    .productId(p.getProductId())
+                    .packageType(p.getPackageType())
+                    .quantity(p.getQuantity())
                     .build())
                 .collect(Collectors.toList());
         }
@@ -69,9 +94,10 @@ public class DealMapper {
         Deal entity = Deal.builder()
             .dealName(dto.getDealName())
             .status(dto.getStatus())
+            .dealValue(dto.getDealValue())
             .commission(dto.getCommission())
-            .productIds(dto.getProductIds() != null ? new ArrayList<>(dto.getProductIds()) : null)
-            .salesReps(salesRepsCopy)
+            .products(productsCopy)
+            .salesRepresentatives(salesRepsCopy)
             .leadId(dto.getLeadId())
             .build();
 

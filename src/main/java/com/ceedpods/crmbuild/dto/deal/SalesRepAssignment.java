@@ -1,22 +1,24 @@
 package com.ceedpods.crmbuild.dto.deal;
 
-import com.ceedpods.crmbuild.enums.SalesRepPosition;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+/**
+ * DTO for sales representative assignment within a deal.
+ * Contains user reference and their role on the deal.
+ */
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
 public class SalesRepAssignment {
 
-    @NotBlank(message = "Sales rep ID is required")
-    private String id; // User ID (UUID)
+    @NotBlank(message = "User ID is required")
+    private String userId; // User ID (UUID)
 
-    @NotNull(message = "Position is required")
-    private SalesRepPosition position; // Primary, Co-primary, Consultant
+    @NotBlank(message = "Role is required")
+    private String role; // Role on the deal (e.g., "Account Manager", "Sales Representative")
 }

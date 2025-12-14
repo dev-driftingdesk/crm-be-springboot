@@ -16,6 +16,12 @@ public interface UserRepository extends MongoRepository<User, String> {
 
     Optional<User> findByKeycloakId(String keycloakId);
 
+    @Query("{ 'keycloakId': ?0, 'deleted': false }")
+    Optional<User> findByKeycloakIdAndDeletedFalse(String keycloakId);
+
+    @Query("{ 'keycloakId': { '$in': ?0 }, 'deleted': false }")
+    List<User> findByKeycloakIdInAndDeletedFalse(List<String> keycloakIds);
+
     boolean existsByEmail(String email);
 
     boolean existsByKeycloakId(String keycloakId);

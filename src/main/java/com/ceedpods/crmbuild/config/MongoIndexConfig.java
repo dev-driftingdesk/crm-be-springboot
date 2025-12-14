@@ -119,6 +119,9 @@ public class MongoIndexConfig {
     private void createDealIndexes() {
         IndexOperations dealIndexOps = mongoTemplate.indexOps(AppConstants.MongoDB.COLLECTION_DEALS);
 
+        // Drop old indexes that may conflict with new structure
+        dropOldDealIndexes(dealIndexOps);
+
         // Index on dealName for faster text search
         dealIndexOps.ensureIndex(
             new Index().on("dealName", Sort.Direction.ASC)
@@ -137,18 +140,39 @@ public class MongoIndexConfig {
                 .named("idx_deal_lead_id")
         );
 
-        // Index on productIds for array field searches
+        // Index on products.productId for array field searches (new structure)
         dealIndexOps.ensureIndex(
-            new Index().on("productIds", Sort.Direction.ASC)
-                .named("idx_deal_product_ids")
+            new Index().on("products.productId", Sort.Direction.ASC)
+                .named("idx_deal_products_product_id")
         );
 
-        // Index on salesReps.id for array field searches (salesReps is now an array of objects)
+        // Index on salesRepresentatives.userId for array field searches (new structure)
         dealIndexOps.ensureIndex(
-            new Index().on("salesReps.id", Sort.Direction.ASC)
-                .named("idx_deal_sales_reps_id")
+            new Index().on("salesRepresentatives.userId", Sort.Direction.ASC)
+                .named("idx_deal_sales_reps_user_id")
         );
 
         log.info("Deal indexes created");
+    }
+
+    /**
+     * Drop old indexes that may conflict with new Deal structure
+     * This handles the migration from old field names to new ones
+     */
+    private void dropOldDealIndexes(IndexOperations dealIndexOps) {
+        try {
+            // Try to drop old indexes if they exist
+            dealIndexOps.dropIndex("idx_deal_product_ids");
+            log.info("Dropped old index: idx_deal_product_ids");
+        } catch (Exception e) {
+            log.debug("Index idx_deal_product_ids does not exist or already dropped");
+        }
+
+        try {
+            dealIndexOps.dropIndex("idx_deal_sales_reps_id");
+            log.info("Dropped old index: idx_deal_sales_reps_id");
+        } catch (Exception e) {
+            log.debug("Index idx_deal_sales_reps_id does not exist or already dropped");
+        }
     }
 }
