@@ -1,6 +1,7 @@
 package com.ceedpods.crmbuild.entity.deal;
 
 import com.ceedpods.crmbuild.constants.AppConstants;
+import com.ceedpods.crmbuild.dto.deal.DealProduct;
 import com.ceedpods.crmbuild.dto.deal.SalesRepAssignment;
 import com.ceedpods.crmbuild.entity.BaseEntity;
 import com.ceedpods.crmbuild.enums.DealStatus;
@@ -30,11 +31,13 @@ public class Deal extends BaseEntity {
 
     private DealStatus status; // Deal status (OPEN, WON, LOST, PENDING, NEGOTIATION)
 
+    private BigDecimal dealValue; // Calculated total value of the deal from products
+
     private BigDecimal commission; // Commission amount for this deal
 
-    private List<String> productIds; // List of product IDs (one or more)
+    private List<DealProduct> products; // List of products with productId, packageType, quantity
 
-    private List<SalesRepAssignment> salesReps; // List of sales rep assignments with id and position
+    private List<SalesRepAssignment> salesRepresentatives; // List of sales rep assignments with userId and role
 
-    private String leadId; // Single lead ID (required)
+    private String leadId; // Associated lead ID (required)
 }

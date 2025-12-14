@@ -1,5 +1,6 @@
 package com.ceedpods.crmbuild.service.lead;
 
+import com.ceedpods.crmbuild.dto.deal.DealProduct;
 import com.ceedpods.crmbuild.dto.deal.SalesRepAssignment;
 import com.ceedpods.crmbuild.dto.lead.DealDetailDTO;
 import com.ceedpods.crmbuild.dto.lead.LeadDTO;
@@ -97,8 +98,8 @@ public class LeadService {
 
         // 6. Collect all unique product IDs from deals for batch product lookup
         Set<String> allProductIds = dealMap.values().stream()
-                .filter(deal -> deal.getProductIds() != null)
-                .flatMap(deal -> deal.getProductIds().stream())
+                .filter(deal -> deal.getProducts() != null)
+                .flatMap(deal -> deal.getProducts().stream().map(DealProduct::getProductId))
                 .collect(Collectors.toSet());
 
         // 7. Batch fetch all products and create a map for quick lookup
@@ -123,14 +124,22 @@ public class LeadService {
             long totalDeals = leadDealIds.size();
 
             // Calculate total value from products in all deals for this lead
+            // Use dealValue if available (pre-calculated), otherwise calculate from products
             BigDecimal totalValue = BigDecimal.ZERO;
             for (String dealId : leadDealIds) {
                 Deal deal = dealMap.get(dealId);
-                if (deal != null && deal.getProductIds() != null) {
-                    for (String productId : deal.getProductIds()) {
-                        Product product = productMap.get(productId);
-                        if (product != null && product.getBasePrice() != null) {
-                            totalValue = totalValue.add(product.getBasePrice());
+                if (deal != null) {
+                    // Prefer pre-calculated dealValue
+                    if (deal.getDealValue() != null) {
+                        totalValue = totalValue.add(deal.getDealValue());
+                    } else if (deal.getProducts() != null) {
+                        // Fallback: calculate from products
+                        for (DealProduct dealProduct : deal.getProducts()) {
+                            Product product = productMap.get(dealProduct.getProductId());
+                            if (product != null && product.getBasePrice() != null) {
+                                int quantity = dealProduct.getQuantity() != null ? dealProduct.getQuantity() : 1;
+                                totalValue = totalValue.add(product.getBasePrice().multiply(BigDecimal.valueOf(quantity)));
+                            }
                         }
                     }
                 }
@@ -210,11 +219,11 @@ public class LeadService {
         Set<String> allProductIds = new HashSet<>();
         Set<String> allSalesRepIds = new HashSet<>();
         for (Deal deal : dealMap.values()) {
-            if (deal.getProductIds() != null) {
-                allProductIds.addAll(deal.getProductIds());
+            if (deal.getProducts() != null) {
+                deal.getProducts().forEach(p -> allProductIds.add(p.getProductId()));
             }
-            if (deal.getSalesReps() != null) {
-                deal.getSalesReps().forEach(sr -> allSalesRepIds.add(sr.getId()));
+            if (deal.getSalesRepresentatives() != null) {
+                deal.getSalesRepresentatives().forEach(sr -> allSalesRepIds.add(sr.getUserId()));
             }
         }
 
@@ -256,20 +265,28 @@ public class LeadService {
             if (deal == null) continue;
 
             // Calculate deal value from products
-            BigDecimal dealValue = BigDecimal.ZERO;
+            // Use pre-calculated dealValue if available
+            BigDecimal dealValue = deal.getDealValue() != null ? deal.getDealValue() : BigDecimal.ZERO;
             List<DealDetailDTO.ProductSummaryDTO> productSummaries = new ArrayList<>();
 
-            if (deal.getProductIds() != null) {
-                for (String productId : deal.getProductIds()) {
-                    Product product = productMap.get(productId);
+            if (deal.getProducts() != null) {
+                for (DealProduct dealProduct : deal.getProducts()) {
+                    Product product = productMap.get(dealProduct.getProductId());
                     if (product != null) {
-                        if (product.getBasePrice() != null) {
-                            dealValue = dealValue.add(product.getBasePrice());
+                        int quantity = dealProduct.getQuantity() != null ? dealProduct.getQuantity() : 1;
+                        BigDecimal productValue = product.getBasePrice() != null
+                            ? product.getBasePrice().multiply(BigDecimal.valueOf(quantity))
+                            : BigDecimal.ZERO;
+
+                        // Only calculate if dealValue wasn't pre-calculated
+                        if (deal.getDealValue() == null && product.getBasePrice() != null) {
+                            dealValue = dealValue.add(productValue);
                         }
+
                         productSummaries.add(DealDetailDTO.ProductSummaryDTO.builder()
                             .id(product.getId())
                             .productName(product.getProductName())
-                            .productValue(product.getBasePrice())
+                            .productValue(productValue)
                             .productStatus(product.getProductStatus() != null ? product.getProductStatus().getDisplayName() : null)
                             .build());
                     }
@@ -278,14 +295,14 @@ public class LeadService {
 
             // Build sales rep details
             List<DealDetailDTO.SalesRepDetailDTO> salesRepDetails = new ArrayList<>();
-            if (deal.getSalesReps() != null) {
-                for (SalesRepAssignment sr : deal.getSalesReps()) {
-                    User user = userMap.get(sr.getId());
+            if (deal.getSalesRepresentatives() != null) {
+                for (SalesRepAssignment sr : deal.getSalesRepresentatives()) {
+                    User user = userMap.get(sr.getUserId());
                     salesRepDetails.add(DealDetailDTO.SalesRepDetailDTO.builder()
-                        .id(sr.getId())
+                        .id(sr.getUserId())
                         .fullName(user != null ? user.getFullName() : null)
                         .email(user != null ? user.getEmail() : null)
-                        .position(sr.getPosition() != null ? sr.getPosition().getDisplayName() : null)
+                        .position(sr.getRole()) // Now using role (string) instead of position (enum)
                         .build());
                 }
             }
@@ -318,7 +335,7 @@ public class LeadService {
             if (dealStatus == null) {
                 criticalItems.add("Deal '" + deal.getDealName() + "' has no status assigned");
             }
-            if (deal.getProductIds() == null || deal.getProductIds().isEmpty()) {
+            if (deal.getProducts() == null || deal.getProducts().isEmpty()) {
                 criticalItems.add("Deal '" + deal.getDealName() + "' has no products");
             }
 

@@ -86,6 +86,12 @@ public enum Permission {
     DEAL_REOPEN("DEAL_REOPEN", "Reopen closed deals", PermissionCategory.DEAL_MANAGEMENT, true),
     DEAL_VIEW_COMMISSION("DEAL_VIEW_COMMISSION", "View commission breakdown", PermissionCategory.ANALYTICS, true),
 
+    // Deal Notes
+    DEAL_NOTE_CREATE("DEAL_NOTE_CREATE", "Create deal notes", PermissionCategory.DEAL_MANAGEMENT, true),
+    DEAL_NOTE_VIEW_ALL("DEAL_NOTE_VIEW_ALL", "View all deal notes", PermissionCategory.DEAL_MANAGEMENT, true),
+    DEAL_NOTE_EDIT("DEAL_NOTE_EDIT", "Edit deal notes", PermissionCategory.DEAL_MANAGEMENT, true),
+    DEAL_NOTE_DELETE("DEAL_NOTE_DELETE", "Delete deal notes", PermissionCategory.DEAL_MANAGEMENT, true),
+
     // ========================================================================================
     // COMMUNICATION (Calls, Emails, Messages)
     // ========================================================================================

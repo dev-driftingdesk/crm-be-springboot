@@ -1,5 +1,6 @@
 package com.ceedpods.crmbuild.service.product;
 
+import com.ceedpods.crmbuild.dto.deal.DealProduct;
 import com.ceedpods.crmbuild.dto.product.ProductDTO;
 import com.ceedpods.crmbuild.dto.product.ProductListResponse;
 import com.ceedpods.crmbuild.dto.request.CreateProductRequest;
@@ -91,7 +92,7 @@ public class ProductService {
         // Batch fetch all deals containing any of these products in a single query
         // Then count in memory
         Map<String, Long> productDealCounts = dealRepository.findByProductIdsInAndDeletedFalse(productIds).stream()
-            .flatMap(deal -> deal.getProductIds() != null ? deal.getProductIds().stream() : java.util.stream.Stream.empty())
+            .flatMap(deal -> deal.getProducts() != null ? deal.getProducts().stream().map(DealProduct::getProductId) : java.util.stream.Stream.<String>empty())
             .filter(productIds::contains)
             .collect(Collectors.groupingBy(id -> id, Collectors.counting()));
 
@@ -347,7 +348,7 @@ public class ProductService {
 
         // Batch fetch all deals containing any of these products in a single query
         Map<String, Long> productDealCounts = dealRepository.findByProductIdsInAndDeletedFalse(productIds).stream()
-            .flatMap(deal -> deal.getProductIds() != null ? deal.getProductIds().stream() : java.util.stream.Stream.empty())
+            .flatMap(deal -> deal.getProducts() != null ? deal.getProducts().stream().map(DealProduct::getProductId) : java.util.stream.Stream.<String>empty())
             .filter(productIds::contains)
             .collect(Collectors.groupingBy(id -> id, Collectors.counting()));
 
